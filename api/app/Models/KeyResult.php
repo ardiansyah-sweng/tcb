@@ -5,10 +5,13 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToOwner;
 use App\Models\Concerns\UsesTimestampTz;
 use Database\Factories\KeyResultFactory;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class KeyResult extends Model
 {
@@ -25,6 +28,24 @@ class KeyResult extends Model
             'target_value' => 'float',
             'current_value' => 'float',
         ];
+    }
+
+    /**
+     * Add `progress` (0..1) from the key_result_progress view.
+     *
+     * @param  Builder<KeyResult>  $query
+     */
+    #[Scope]
+    protected function withProgress(Builder $query): void
+    {
+        if ($query->getQuery()->columns === null) {
+            $query->select($query->qualifyColumn('*'));
+        }
+
+        $query->addSelect(['progress' => DB::table('key_result_progress')
+            ->select('progress')
+            ->whereColumn('key_result_progress.key_result_id', $query->qualifyColumn('id')),
+        ])->withCasts(['progress' => 'float']);
     }
 
     /** @return BelongsTo<Objective, $this> */

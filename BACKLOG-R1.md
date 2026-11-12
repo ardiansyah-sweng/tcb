@@ -116,10 +116,12 @@ Kriteria penerimaan:
 Bergantung pada: R1-03 · FR-01
 
 Kriteria penerimaan:
-- [ ] `GET/POST /objectives`, `GET/PATCH /objectives/{id}` sesuai OpenAPI.
-- [ ] Wajib: judul, periode mulai, periode akhir; periode akhir ≥ mulai (422 jika tidak).
-- [ ] Status bisa diubah ke `closed` atau `archived`; Objective `archived` tidak muncul di daftar default.
-- [ ] Respons memuat `progress` dari view `objective_progress`.
+- [x] `GET/POST /objectives`, `GET/PATCH /objectives/{id}` sesuai OpenAPI.
+- [x] Wajib: judul, periode mulai, periode akhir; periode akhir ≥ mulai (422 jika tidak).
+- [x] Status bisa diubah ke `closed` atau `archived`; Objective `archived` tidak muncul di daftar default.
+- [x] Respons memuat `progress` dari view `objective_progress`.
+
+Catatan R1-04: detail Objective sudah memuat `key_results` (dengan `progress`); `task_counts` per KR menyusul di R1-05. Field opsional `orphan_task_count` dan `time_allocation` di `ObjectiveDetail` belum diisi (lihat "Catatan teknis").
 
 ### R1-05 · API Key Result dan progres · M
 Bergantung pada: R1-04 · FR-02
@@ -335,4 +337,6 @@ Kriteria penerimaan:
 - CI: `actions/checkout@v4` dan `actions/setup-node@v4` masih memakai Node.js 20 yang sudah usang (peringatan GitHub, belum menggagalkan CI). Naikkan ke versi mayor terbaru; sekalian pertimbangkan mematok runner (mis. `ubuntu-24.04`) karena label `ubuntu-latest` sedang dipindahkan ke Ubuntu 26.
 - Token Sanctum kedaluwarsa setelah 30 hari, tetapi barisnya tetap di `personal_access_tokens`. Jadwalkan `php artisan sanctum:prune-expired --hours=24` harian saat scheduler sudah berjalan (paling lambat R1-21).
 - Pesan validasi bawaan Laravel masih berbahasa Inggris (folder `lang/id` belum ada); R1-03 memakai pesan kustom. Pertimbangkan `php artisan lang:publish` + terjemahan `id` sebelum endpoint dengan banyak validasi (R1-04 dst.).
+- `ObjectiveDetail.orphan_task_count` dan `time_allocation` (jam per KR 7 hari terakhir) belum diimplementasikan; tidak ada di kriteria R1 mana pun. Perlu diputuskan: `orphan_task_count` menghitung task orphan milik pengguna secara global (orphan tidak terikat Objective), dan `time_allocation` lebih cocok di tampilan progres goal (FR-19, Rilis 3).
+- Respons 404 kini seragam `{code: not_found, message: "<Model> tidak ditemukan."}` (renderer di `bootstrap/app.php`); tambahkan model baru ke peta label di sana.
 - `GlobalScope` pemilik hanya aktif saat ada pengguna login. Job antrean dan perintah konsol (mis. `CalendarSyncJob`, Rilis 2) harus menyaring `owner_id` sendiri.
