@@ -151,7 +151,7 @@ Kriteria penerimaan:
 Bergantung pada: R1-06 · FR-11
 
 Kriteria penerimaan:
-- [ ] `parent_task_id` bisa diisi saat membuat atau mengubah task; task tidak bisa menjadi induk dirinya sendiri atau membentuk siklus (422).
+- [x] `parent_task_id` bisa diisi saat membuat atau mengubah task; task tidak bisa menjadi induk dirinya sendiri atau membentuk siklus (422).
 - [ ] `GET/POST /tasks/{id}/dependencies`, `PATCH /dependencies/{id}` (status `resolved`), `DELETE /dependencies/{id}`.
 - [ ] Dependensi berupa task lain **atau** deskripsi eksternal, tidak keduanya (422).
 - [ ] Dependensi yang membentuk siklus (A menunggu B, B menunggu A) ditolak (422).
@@ -346,4 +346,4 @@ Kriteria penerimaan:
 - R1-06: `GET /tasks?sort=` baru menerima `updated` (bawaan). `score` (kontrak) menunggu R1-13; `deadline` (kontrak) belum masuk kriteria story mana pun. Keduanya kini 422 "Urutan yang tersedia saat ini hanya updated." Saat dibuat, urutkan `deadline` dengan `coalesce(deadline_at, 'infinity')` beralias agar cursor tidak rusak oleh NULL.
 - R1-06: ukuran halaman `GET /tasks` tetap 50 (`TaskController::PER_PAGE`); kontrak tidak punya parameter `limit`.
 - R1-06: cursor `GET /tasks` diurutkan pada alias `cursor_updated_at` (teks timestamptz mentah). Cast `datetime` Eloquent mengubah nilai cursor menjadi detik saja sehingga baris dalam detik yang sama terlewat; pola yang sama perlu dipakai untuk cursor pada kolom waktu lain. Catatan terkait: Eloquent menulis waktu tanpa microsecond (`UsesTimestampTz`), sedangkan `now()` PostgreSQL menyimpan microsecond.
-- R1-06: `POST/PATCH /tasks` belum menerima `parent_task_id` (R1-07) dan field satuan `unit_*` (R1-08); field itu kini diabaikan. `GET /tasks/{id}` baru mengembalikan field `Task`; tambahan `TaskDetail` (`subtasks`, `open_dependencies`, `latest_context`, ...) diisi oleh R1-07 dan R1-10.
+- R1-06: `POST/PATCH /tasks` belum menerima field satuan `unit_*` (R1-08); field itu kini diabaikan. `parent_task_id` sudah diterima (kriteria 1 R1-07 dikerjakan di branch R1-06 atas permintaan pengguna). `GET /tasks/{id}` baru mengembalikan field `Task`; tambahan `TaskDetail` (`subtasks`, `open_dependencies`, `latest_context`, ...) diisi oleh R1-07 dan R1-10.

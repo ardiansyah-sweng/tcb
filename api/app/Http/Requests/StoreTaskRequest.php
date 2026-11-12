@@ -11,8 +11,8 @@ use Illuminate\Validation\Rules\Exists;
  * Schema TaskCreate in docs/tcb_openapi.yaml. Only the title is required
  * (CLAUDE.md rule 6); everything else falls back to database defaults.
  *
- * parent_task_id (R1-07) and the unit fields (R1-08) are added by their own
- * stories.
+ * The unit fields are added by R1-08. A new task has no subtasks, so its
+ * parent cannot form a cycle; UpdateTaskRequest checks cycles.
  */
 class StoreTaskRequest extends FormRequest
 {
@@ -23,6 +23,8 @@ class StoreTaskRequest extends FormRequest
         'description.string' => 'Deskripsi harus berupa teks.',
         'key_result_id.integer' => 'Key Result tidak ditemukan.',
         'key_result_id.exists' => 'Key Result tidak ditemukan.',
+        'parent_task_id.integer' => 'Task induk tidak ditemukan.',
+        'parent_task_id.exists' => 'Task induk tidak ditemukan.',
         'label.string' => 'Label harus berupa teks.',
         'priority.required' => 'Prioritas wajib diisi.',
         'priority.integer' => 'Prioritas harus bilangan bulat 1 sampai 4.',
@@ -47,6 +49,7 @@ class StoreTaskRequest extends FormRequest
             'title' => ['required', 'string'],
             'description' => ['nullable', 'string'],
             'key_result_id' => ['bail', 'nullable', 'integer', self::ownKeyResult()],
+            'parent_task_id' => ['bail', 'nullable', 'integer', self::ownParent()],
             'label' => ['nullable', 'string'],
             'priority' => ['bail', 'required', 'integer', 'between:1,4'],
             'deadline_at' => ['nullable', 'date'],
@@ -81,5 +84,11 @@ class StoreTaskRequest extends FormRequest
     private static function ownKeyResult(): Exists
     {
         return Rule::exists('key_results', 'id')->where('owner_id', Auth::id());
+    }
+
+    /** The parent must be one of the owner's tasks that is not deleted. */
+    private static function ownParent(): Exists
+    {
+        return Rule::exists('tasks', 'id')->where('owner_id', Auth::id())->whereNull('deleted_at');
     }
 }

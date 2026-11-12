@@ -455,6 +455,81 @@ it('returns 404 when patching or deleting another owner\'s task', function () {
 });
 
 /*
+| parent_task_id (TaskCreate/TaskUpdate; R1-07 criterion 1): settable on
+| create and update; no self-parent, no cycles.
+*/
+
+it('creates a subtask with parent_task_id', function () {
+    $parent = makeTask($this->user);
+
+    $this->postJson('/api/v1/tasks', ['title' => 'Subtask', 'parent_task_id' => $parent->id])
+        ->assertCreated()
+        ->assertJsonPath('parent_task_id', $parent->id);
+});
+
+it('sets and clears parent_task_id with PATCH', function () {
+    $parent = makeTask($this->user);
+    $task = makeTask($this->user);
+
+    $this->patchJson("/api/v1/tasks/{$task->id}", ['parent_task_id' => $parent->id])
+        ->assertOk()
+        ->assertJsonPath('parent_task_id', $parent->id);
+
+    $this->patchJson("/api/v1/tasks/{$task->id}", ['parent_task_id' => null])
+        ->assertOk()
+        ->assertJsonPath('parent_task_id', null);
+});
+
+it('rejects a missing, deleted, or another owner\'s parent', function (callable $parentId) {
+    $id = $parentId($this->user);
+    $task = makeTask($this->user);
+
+    $this->postJson('/api/v1/tasks', ['title' => 'Subtask', 'parent_task_id' => $id])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.parent_task_id.0', 'Task induk tidak ditemukan.');
+    $this->patchJson("/api/v1/tasks/{$task->id}", ['parent_task_id' => $id])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.parent_task_id.0', 'Task induk tidak ditemukan.');
+})->with([
+    'missing' => [fn () => 999999],
+    'not a number' => [fn () => 'TCB-1'],
+    'deleted' => [function (User $user) {
+        $task = makeTask($user);
+        $task->delete();
+
+        return $task->id;
+    }],
+    'another owner' => [fn () => makeTask(User::factory()->create())->id],
+]);
+
+it('rejects a task as its own parent', function () {
+    $task = makeTask($this->user);
+
+    $this->patchJson("/api/v1/tasks/{$task->id}", ['parent_task_id' => $task->id])
+        ->assertUnprocessable()
+        ->assertJsonPath('errors.parent_task_id.0', 'Task tidak bisa menjadi induk dirinya sendiri.');
+});
+
+it('rejects a parent that would form a cycle', function () {
+    // a <- b <- c (c is a grandchild of a)
+    $a = makeTask($this->user);
+    $b = makeTask($this->user, ['parent_task_id' => $a->id]);
+    $c = makeTask($this->user, ['parent_task_id' => $b->id]);
+
+    foreach ([$b, $c] as $descendant) {
+        $this->patchJson("/api/v1/tasks/{$a->id}", ['parent_task_id' => $descendant->id])
+            ->assertUnprocessable()
+            ->assertJsonPath('errors.parent_task_id.0', 'Task induk tidak boleh subtask dari task ini (membentuk siklus).');
+    }
+    expect($a->fresh()->parent_task_id)->toBeNull();
+
+    // Moving within the tree without a cycle is fine.
+    $this->patchJson("/api/v1/tasks/{$c->id}", ['parent_task_id' => $a->id])
+        ->assertOk()
+        ->assertJsonPath('parent_task_id', $a->id);
+});
+
+/*
 | Criterion: DELETE /tasks/{id} soft-deletes; a deleted task does not appear
 | in the list and the log stays intact.
 */
