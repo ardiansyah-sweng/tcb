@@ -329,3 +329,7 @@ Kriteria penerimaan:
 - Integrasi Google Calendar, blok fokus, proposal, deadline dari event: Rilis 2 (FR-14, FR-15, FR-17, FR-24).
 - Tampilan progres goal lengkap, pengaturan bobot, dasbor metrik, feed iCal dan ekspor: Rilis 3 (FR-19 s.d. FR-22).
 - Penutupan task otomatis saat periode Objective berakhir: dicatat untuk Rilis 3.
+
+## Catatan teknis (boleh dirapikan di story mana pun)
+
+- CI: `actions/checkout@v4` dan `actions/setup-node@v4` masih memakai Node.js 20 yang sudah usang (peringatan GitHub, belum menggagalkan CI). Naikkan ke versi mayor terbaru; sekalian pertimbangkan mematok runner (mis. `ubuntu-24.04`) karena label `ubuntu-latest` sedang dipindahkan ke Ubuntu 26.

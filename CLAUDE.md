@@ -50,3 +50,29 @@ docker compose exec app php artisan test
 docker compose exec web npm run test
 docker compose exec app php artisan tcb:create-user
 ```
+
+Catatan lingkungan:
+
+- Service `app` menjalankan `php artisan migrate --force` setiap kali start, sebelum `serve`. `migrate:fresh --seed` tetap manual.
+- `php artisan test` selalu memakai database `tcb_test` (dipaksa di `api/phpunit.xml`), jadi tidak menyentuh data dev di `tcb`.
+- Job CI `compose` menguji `docker compose up` (keempat service, health check, worker tidak crash-loop). Jika mengubah `docker-compose.yml` atau Dockerfile, pastikan job ini tetap hijau.
+
+### Mesin pengembang tanpa Docker (Windows, saat ini)
+
+Docker belum terpasang di mesin pengembang. Perintah `docker compose ...` di atas tidak bisa dijalankan lokal; gunakan padanannya:
+
+```bash
+# API: PostgreSQL 18 lokal, kredensial di api/.env (database tcb dan tcb_test, pemilik tcb_user)
+cd api
+php artisan migrate:fresh --seed
+php vendor/bin/pest            # jangan `php artisan test` bila pdo_pgsql belum aktif di php.ini
+
+# Web: jalankan dari path berhuruf drive besar (D:\tcb\web), bukan d:\
+cd web
+npm run test
+npm run lint
+```
+
+- Jika `extension=pdo_pgsql` dan `extension=pgsql` belum aktif di `C:\php\php.ini`, tambahkan `-d extension=pdo_pgsql -d extension=pgsql` setelah `php`. `php artisan test` tidak bisa memakai flag ini karena menjalankan proses PHP baru (galat "could not find driver").
+- Vitest gagal dengan "failed to find the current suite" bila dijalankan dari `d:\` (huruf kecil); jalankan dari `D:\` (PowerShell: `Set-Location D:\tcb\web`).
+- Folder tes kosong harus berisi `.gitkeep`; Git tidak menyimpan folder kosong dan PHPUnit gagal di CI bila folder di `phpunit.xml` tidak ada.
