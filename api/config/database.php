@@ -96,6 +96,8 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
+            // Times are stored and read in UTC; the UI converts to the user's zone (CLAUDE.md rule 8).
+            'timezone' => 'UTC',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
