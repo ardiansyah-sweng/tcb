@@ -75,8 +75,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: docker compose up
         run: docker compose up -d --build --wait --wait-timeout 420
-      - name: Migrate (queue tables for the worker)
-        run: docker compose exec -T app php artisan migrate --force
+      - name: Migrations were applied on app start
+        run: docker compose exec -T app php artisan migrate:status
       - name: API health via app
         run: |
           body=$(curl -fsS http://localhost:8000/api/v1/health)
@@ -95,6 +95,10 @@ jobs:
           for s in db app worker web; do
             docker compose ps --status running --services | grep -qx "$s" || { echo "service $s is not running"; exit 1; }
           done
+          # restart: unless-stopped must not hide a crash-looping worker
+          restarts=$(docker inspect --format '{{.RestartCount}}' "$(docker compose ps -q worker)")
+          echo "worker restarts: $restarts"
+          test "$restarts" = 0
       - name: Logs on failure
         if: failure()
         run: |

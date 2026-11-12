@@ -18,6 +18,9 @@ services:
 
   app:
     build: ./api
+    # Apply pending migrations (non-destructive) before serving, so the worker
+    # always finds the queue/cache tables. `migrate:fresh --seed` stays manual.
+    command: ["sh", "-c", "php artisan migrate --force && exec php artisan serve --host=0.0.0.0 --port=8000"]
     environment: &api-env
       DB_CONNECTION: pgsql
       DB_HOST: db
@@ -43,6 +46,7 @@ services:
   worker:
     build: ./api
     command: ["php", "artisan", "queue:work", "--tries=3"]
+    restart: unless-stopped
     environment: *api-env
     volumes:
       - ./api:/var/www/api
