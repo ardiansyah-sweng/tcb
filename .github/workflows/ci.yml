@@ -97,7 +97,13 @@ jobs:
           done
       - name: Logs on failure
         if: failure()
-        run: docker compose logs --no-color
+        run: |
+          docker compose ps -a
+          for c in $(docker compose ps -aq); do
+            echo "== health $(docker inspect --format '{{.Name}}' "$c")"
+            docker inspect --format '{{json .State.Health}}' "$c"
+          done
+          docker compose logs --no-color
       - name: Tear down
         if: always()
         run: docker compose down -v
