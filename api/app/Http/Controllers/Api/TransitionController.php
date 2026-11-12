@@ -31,6 +31,7 @@ class TransitionController extends Controller
             $request->validated('to'),
             reason: $request->validated('reason'),
             reviewOn: $request->validated('review_on'),
+            context: $request->context(),
         );
 
         return TaskDetailResource::load($task);

@@ -22,6 +22,9 @@ class TaskStateMachine
      */
     private const REASON_REQUIRED = ['waiting', 'cancelled'];
 
+    /** States that finish a task's work (leaving Running for them is not a context switch). */
+    private const FINISHED = ['done', 'cancelled'];
+
     /** @var array<string, list<string>>|null from_state => to_states, in lifecycle order */
     private ?array $targets = null;
 
@@ -41,6 +44,16 @@ class TaskStateMachine
     public function requiresReason(string $to): bool
     {
         return in_array($to, self::REASON_REQUIRED, true);
+    }
+
+    /**
+     * The task leaves Running without finishing (to Ready, Waiting, or
+     * Suspended): it needs a context (FR-07) and counts as a switch (FR-10).
+     * This is a property of the move, not a list of allowed transitions.
+     */
+    public function isContextSwitch(string $from, string $to): bool
+    {
+        return $from === 'running' && $to !== 'running' && ! in_array($to, self::FINISHED, true);
     }
 
     /**

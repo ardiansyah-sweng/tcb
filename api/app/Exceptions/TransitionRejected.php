@@ -51,6 +51,18 @@ class TransitionRejected extends RuntimeException
         ]);
     }
 
+    /** 422 for leaving Running without a context: an Error (code) and a ValidationErrorBody (errors.context). */
+    public static function contextRequired(): self
+    {
+        $message = 'Catat konteks dulu sebelum meninggalkan Running: sampai mana dan langkah berikutnya.';
+
+        return new self(422, [
+            'code' => 'context_required',
+            'message' => $message,
+            'errors' => ['context' => [$message]],
+        ]);
+    }
+
     /**
      * @param  list<string>  $taskKeys
      */

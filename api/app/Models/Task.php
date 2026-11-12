@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use LogicException;
 
 /**
  * Task Control Block.
@@ -35,6 +37,42 @@ class Task extends Model
         // Tied to the Suspended state; set and cleared by TransitionService.
         'review_on',
     ];
+
+    /** Set only while TransitionService saves a state change. */
+    private static bool $stateChangeAllowed = false;
+
+    /**
+     * Run $save with state changes allowed. Only TransitionService calls this.
+     *
+     * @internal
+     *
+     * @template T
+     *
+     * @param  callable(): T  $save
+     * @return T
+     */
+    public static function changingState(callable $save): mixed
+    {
+        $previous = self::$stateChangeAllowed;
+        self::$stateChangeAllowed = true;
+
+        try {
+            return $save();
+        } finally {
+            self::$stateChangeAllowed = $previous;
+        }
+    }
+
+    protected static function booted(): void
+    {
+        // CLAUDE.md rule 1: a state change saved through the model anywhere
+        // else is a bug. (Raw SQL is still caught by the database triggers.)
+        static::updating(function (Task $task) {
+            if ($task->isDirty('state') && ! self::$stateChangeAllowed) {
+                throw new LogicException('Task state may only change through TransitionService (CLAUDE.md rule 1).');
+            }
+        });
+    }
 
     protected function casts(): array
     {
@@ -102,6 +140,26 @@ class Task extends Model
     public function contextSnapshots(): HasMany
     {
         return $this->hasMany(ContextSnapshot::class);
+    }
+
+    /**
+     * The newest context snapshot (FR-08).
+     *
+     * @return HasOne<ContextSnapshot, $this>
+     */
+    public function latestContext(): HasOne
+    {
+        return $this->hasOne(ContextSnapshot::class)->latestOfMany();
+    }
+
+    /**
+     * The work session open while the task is Running.
+     *
+     * @return HasOne<WorkSession, $this>
+     */
+    public function openSession(): HasOne
+    {
+        return $this->hasOne(WorkSession::class)->whereNull('ended_at');
     }
 
     /** @return HasMany<StateTransition, $this> */

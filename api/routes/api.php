@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ContextController;
 use App\Http\Controllers\Api\DependencyController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\KeyResultController;
@@ -36,6 +37,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // State changes go through TransitionService only (CLAUDE.md rule 1).
     Route::get('/tasks/{task}/transitions', [TransitionController::class, 'index'])->name('tasks.transitions.index');
     Route::post('/tasks/{task}/transitions', [TransitionController::class, 'store'])->name('tasks.transitions.store');
+
+    Route::get('/tasks/{task}/contexts', [ContextController::class, 'index'])->name('tasks.contexts.index');
+    Route::post('/tasks/{task}/contexts', [ContextController::class, 'store'])->name('tasks.contexts.store');
+    Route::get('/tasks/{task}/contexts/draft', [ContextController::class, 'draft'])->name('tasks.contexts.draft');
 
     // {dependency} is numeric; Dependency::resolveRouteBinding returns 404 otherwise.
     Route::apiResource('tasks.dependencies', DependencyController::class)

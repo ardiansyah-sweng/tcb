@@ -2,7 +2,6 @@
 
 use App\Models\Task;
 use App\Models\User;
-use App\Services\TaskStateMachine;
 use App\Services\TransitionService;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\QueryException;
@@ -23,23 +22,6 @@ function transitionLog(Task $task): array
 {
     return DB::table('state_transitions')->where('task_id', $task->id)->orderBy('id')
         ->get()->map(fn ($r) => [$r->from_state, $r->to_state])->all();
-}
-
-/** Replace TaskStateMachine with one that lets everything through, so only the database guards. */
-function skipAppChecks(): void
-{
-    app()->instance(TaskStateMachine::class, new class extends TaskStateMachine
-    {
-        public function allows(string $from, string $to): bool
-        {
-            return true;
-        }
-
-        public function requiresReason(string $to): bool
-        {
-            return false;
-        }
-    });
 }
 
 /*
@@ -81,6 +63,8 @@ it('stores the reason with the state and in the log', function (array $path, str
     $this->postJson("/api/v1/tasks/{$task->id}/transitions", [
         'to' => $to,
         'reason' => '  Menunggu nilai praktikum dari asisten  ',
+        // Leaving Running needs a context (R1-10); the other states accept one.
+        'context' => ['last_note' => 'Nilai teori sudah masuk semua'],
     ])->assertOk()
         ->assertJsonPath('state', $to)
         ->assertJsonPath('state_reason', 'Menunggu nilai praktikum dari asisten');
@@ -105,7 +89,7 @@ it('clears the old reason when the task becomes ready again', function () {
 });
 
 it('accepts context from the contract', function () {
-    // Storing the context is R1-10; R1-09 only accepts the field.
+    // Storing the context is covered in TransitionAccountingTest (R1-10).
     $task = walkTo(makeTask($this->user), 'ready', 'running');
 
     $this->postJson("/api/v1/tasks/{$task->id}/transitions", [
@@ -363,12 +347,13 @@ it('maps the database reason check to the same 422', function () {
     $checked = walkTo(makeTask($this->user), 'ready', 'running');
     $unchecked = walkTo(makeTask($this->user), 'ready', 'running');
 
-    $expected = $this->postJson("/api/v1/tasks/{$checked->id}/transitions", ['to' => 'waiting'])
+    $body = ['to' => 'waiting', 'context' => ['last_note' => 'Bab 2 selesai']];
+    $expected = $this->postJson("/api/v1/tasks/{$checked->id}/transitions", $body)
         ->assertUnprocessable()->json();
 
     skipAppChecks();
 
-    $this->postJson("/api/v1/tasks/{$unchecked->id}/transitions", ['to' => 'waiting'])
+    $this->postJson("/api/v1/tasks/{$unchecked->id}/transitions", $body)
         ->assertUnprocessable()
         ->assertExactJson($expected);
 

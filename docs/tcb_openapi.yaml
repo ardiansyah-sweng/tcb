@@ -478,6 +478,7 @@ paths:
                   data:
                     type: array
                     items: { $ref: '#/components/schemas/ContextSnapshot' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       tags: [Konteks]
       summary: Simpan catatan konteks tanpa mengubah status
@@ -493,6 +494,8 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContextSnapshot' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
   /tasks/{taskId}/contexts/draft:
     parameters:
@@ -508,6 +511,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ContextInput' }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # ---------------------------------------------------------------- Dependensi
   /tasks/{taskId}/dependencies:

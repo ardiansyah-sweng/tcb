@@ -2,6 +2,7 @@
 
 use App\Models\Task;
 use App\Models\User;
+use App\Services\TaskStateMachine;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -88,6 +89,26 @@ function setState(Task $task, string $to, ?string $reason = null): void
         $values['state_reason'] = $reason;
     }
     DB::table('tasks')->where('id', $task->id)->update($values);
+}
+
+/**
+ * Replace TaskStateMachine with one that lets every transition through and
+ * asks for no reason, so only the database guards.
+ */
+function skipAppChecks(): void
+{
+    app()->instance(TaskStateMachine::class, new class extends TaskStateMachine
+    {
+        public function allows(string $from, string $to): bool
+        {
+            return true;
+        }
+
+        public function requiresReason(string $to): bool
+        {
+            return false;
+        }
+    });
 }
 
 /**

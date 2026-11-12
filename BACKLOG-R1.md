@@ -194,14 +194,16 @@ Catatan R1-09: kontrak dan skema tidak berubah. `TaskStateMachine` (`app/Service
 Bergantung pada: R1-09 · FR-07, FR-08, FR-10 · Spesifikasi: SRS bagian 12
 
 Kriteria penerimaan:
-- [ ] Semua perubahan status (endpoint, switch, service lain) lewat `TransitionService`, dalam satu transaksi, dengan `SET LOCAL tcb.source`.
-- [ ] Keluar dari Running ke Ready/Waiting/Suspended tanpa `context` → 422 `context_required`.
-- [ ] Saat keluar dari Running: context snapshot tersimpan; `next_step` dan `unit_done` task diperbarui dari konteks; sesi kerja ditutup; `time_spent_minutes` bertambah; `switch_count` +1.
-- [ ] Ke Done/Cancelled dari Running: sesi ditutup dan waktu ditambahkan, `switch_count` tidak bertambah.
-- [ ] Masuk Running: sesi kerja baru dibuka.
-- [ ] `GET /tasks/{id}/contexts` (riwayat), `POST /tasks/{id}/contexts` (catatan tanpa ubah status).
-- [ ] `GET /tasks/{id}/contexts/draft` mengembalikan isian awal dari konteks terakhir + `unit_done` saat ini (prinsip input minimal).
-- [ ] Tes kegagalan: jika satu langkah gagal, tidak ada sesi terbuka yang tertinggal dan tidak ada konteks setengah tersimpan.
+- [x] Semua perubahan status (endpoint, switch, service lain) lewat `TransitionService`, dalam satu transaksi, dengan `SET LOCAL tcb.source`.
+- [x] Keluar dari Running ke Ready/Waiting/Suspended tanpa `context` → 422 `context_required`.
+- [x] Saat keluar dari Running: context snapshot tersimpan; `next_step` dan `unit_done` task diperbarui dari konteks; sesi kerja ditutup; `time_spent_minutes` bertambah; `switch_count` +1.
+- [x] Ke Done/Cancelled dari Running: sesi ditutup dan waktu ditambahkan, `switch_count` tidak bertambah.
+- [x] Masuk Running: sesi kerja baru dibuka.
+- [x] `GET /tasks/{id}/contexts` (riwayat), `POST /tasks/{id}/contexts` (catatan tanpa ubah status).
+- [x] `GET /tasks/{id}/contexts/draft` mengembalikan isian awal dari konteks terakhir + `unit_done` saat ini (prinsip input minimal).
+- [x] Tes kegagalan: jika satu langkah gagal, tidak ada sesi terbuka yang tertinggal dan tidak ada konteks setengah tersimpan.
+
+Catatan R1-10: skema tidak berubah; kontrak hanya ditambah 404/422 pada endpoint konteks (lihat "Catatan teknis"). Model `Task` melempar `LogicException` bila `state` diubah lewat Eloquent di luar `TransitionService` (`Task::changingState()`); pembuatan task dengan status tertentu tetap boleh karena tes skema memakainya, dan SQL mentah tetap dijaga trigger. Urutan pemeriksaan: transisi sah → alasan → konteks → subtask. Respons 422 `context_required` berisi `code`, `message`, dan `errors.context`. `context: {}` dianggap konteks (semua field opsional); `null` atau tidak dikirim berarti tanpa konteks. Konteks yang dikirim pada transisi lain (mis. Running → Done) tetap disimpan, tanpa menaikkan `switch_count`. Field `next_step`/`unit_done` yang tidak dikirim mengambil nilai task saat itu, sehingga snapshot selalu memuat "register" lengkap dan `tasks.next_step`/`unit_done` selalu sama dengan snapshot terbaru; `null` yang dikirim mengosongkannya. `unit_done` konteks diperiksa terhadap `unit_total` task (422 di `context.unit_done`, pesan sama dengan R1-08). `POST /contexts` juga menyalin `next_step`/`unit_done` ke task, boleh untuk status apa pun, dan tidak menyentuh sesi atau `switch_count`. Draft: `last_note`, `blocker`, `links` dari snapshot terbaru; `next_step` dan `unit_done` dari task (bisa sudah diubah lewat `PATCH`); `unit_done` 0 bila ada total tetapi belum ada yang selesai. Waktu sesi memakai jam aplikasi (`now()`, bisa dibekukan di tes), dibulatkan ke menit oleh kolom `duration_minutes`; keluar dari Running tanpa sesi terbuka (data lama) menambah 0 menit. `TaskDetail` kini memuat `latest_context` dan `current_session_started_at`. Logika snapshot ada di `ContextService`, aturan "keluar Running tanpa selesai" di `TaskStateMachine::isContextSwitch()`, validasi `ContextInput` di trait `ValidatesContextInput` (siap dipakai `/switch` dengan awalan `context.`). Urutan kunci di `links` mengikuti `jsonb` (`url` sebelum `title`).
 
 ### R1-11 · Pindah konteks atomik dan WIP limit · M
 Bergantung pada: R1-10 · FR-06
@@ -358,4 +360,6 @@ Kriteria penerimaan:
 - R1-07: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada keempat endpoint dependensi dan 422 pada `PATCH /dependencies/{id}`, beserta penjelasan bahwa `PATCH` hanya untuk hambatan eksternal.
 - R1-07 (ide, belum dikerjakan): task yang di-soft delete membuat dependensi yang menunggunya tetap `open` selamanya, sehingga task penunggu tidak pernah layak direkomendasikan. Putuskan di R1-12: lepaskan (`resolved`) atau hapus dependensi itu saat task dihapus.
 - R1-07 (ide, belum dikerjakan): subtask yang menunggu induknya sendiri akan buntu, karena induk tidak bisa Done selama subtask terbuka (R1-09). Belum ditolak.
+- R1-10: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada ketiga endpoint `/tasks/{taskId}/contexts…` dan 422 pada `POST /tasks/{taskId}/contexts`.
+- R1-10 (ide, belum dikerjakan): `tasks.last_activity_at` belum diisi di mana pun. Kandidat: isi saat transisi dan saat menyimpan konteks, untuk deteksi `stale_running`.
 - R1-07: pemeriksaan siklus dependensi tidak memakai kunci; dua permintaan bersamaan (A→B dan B→A) secara teori bisa lolos. Risiko kecil untuk satu pengguna.
