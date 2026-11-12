@@ -8,7 +8,16 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature');
-pest()->use(RefreshDatabase::class)->in('Feature/Database');
+pest()->use(RefreshDatabase::class)->in('Feature/Database', 'Feature/Auth');
+
+/**
+ * Forget resolved guards so the next request authenticates from scratch,
+ * as a new HTTP request would (the test app instance caches the user).
+ */
+function freshRequest(): void
+{
+    app('auth')->forgetGuards();
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +38,9 @@ function dbError(callable $fn): QueryException
     try {
         DB::transaction($fn);
     } catch (QueryException $e) {
+        // Count the rejection as an assertion so the test is not reported as risky.
+        expect($e)->toBeInstanceOf(QueryException::class);
+
         return $e;
     }
 
