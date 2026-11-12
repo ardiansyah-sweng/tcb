@@ -24,6 +24,35 @@ class Dependency extends Model
         ];
     }
 
+    /**
+     * {dependency} in a URL is a numeric ID. The owner scope applies, and a
+     * dependency of a soft-deleted task is hidden like the task itself.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        // Up to 18 digits always fits in a bigint, so PostgreSQL never rejects the cast.
+        if (! preg_match('/^\d{1,18}$/', (string) $value)) {
+            return null;
+        }
+
+        return $this->newQuery()
+            ->whereKey((int) $value)
+            ->whereIn('task_id', Task::query()->select('id'))
+            ->first();
+    }
+
+    public function isExternal(): bool
+    {
+        return $this->depends_on_task_id === null;
+    }
+
     /** @return BelongsTo<Task, $this> */
     public function dependsOn(): BelongsTo
     {

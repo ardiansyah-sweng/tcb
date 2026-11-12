@@ -526,6 +526,7 @@ paths:
                   data:
                     type: array
                     items: { $ref: '#/components/schemas/Dependency' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       tags: [Dependensi]
       summary: Tambah dependensi (task lain atau hambatan eksternal)
@@ -541,6 +542,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Dependency' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
   /dependencies/{dependencyId}:
@@ -552,6 +554,7 @@ paths:
     patch:
       tags: [Dependensi]
       summary: Tandai hambatan eksternal teratasi
+      description: Hanya untuk hambatan eksternal. Dependensi ke task lain terlepas otomatis saat task itu Done, jadi ditolak (422). Permintaan berulang tidak mengubah `resolved_at`.
       operationId: resolveDependency
       requestBody:
         required: true
@@ -568,12 +571,15 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Dependency' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
     delete:
       tags: [Dependensi]
       summary: Hapus dependensi
       operationId: deleteDependency
       responses:
         '204': { description: Dihapus }
+        '404': { $ref: '#/components/responses/NotFound' }
 
   # --------------------------------------------------------------- Rekomendasi
   /recommendations:

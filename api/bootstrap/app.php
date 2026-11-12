@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Dependency;
 use App\Models\KeyResult;
 use App\Models\Objective;
 use App\Models\Task;
@@ -46,6 +47,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     Objective::class => 'Objective',
                     KeyResult::class => 'Key Result',
                     Task::class => 'Task',
+                    Dependency::class => 'Dependensi',
                     default => 'Data',
                 };
 

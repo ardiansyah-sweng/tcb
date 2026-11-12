@@ -124,6 +124,16 @@ class Task extends Model
     }
 
     /**
+     * Dependencies this task still waits for, oldest first.
+     *
+     * @return HasMany<Dependency, $this>
+     */
+    public function openDependencies(): HasMany
+    {
+        return $this->dependencies()->where('status', 'open')->orderBy('id');
+    }
+
+    /**
      * Dependencies of other tasks that wait for this one.
      *
      * @return HasMany<Dependency, $this>

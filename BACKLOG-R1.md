@@ -152,10 +152,12 @@ Bergantung pada: R1-06 · FR-11
 
 Kriteria penerimaan:
 - [x] `parent_task_id` bisa diisi saat membuat atau mengubah task; task tidak bisa menjadi induk dirinya sendiri atau membentuk siklus (422).
-- [ ] `GET/POST /tasks/{id}/dependencies`, `PATCH /dependencies/{id}` (status `resolved`), `DELETE /dependencies/{id}`.
-- [ ] Dependensi berupa task lain **atau** deskripsi eksternal, tidak keduanya (422).
-- [ ] Dependensi yang membentuk siklus (A menunggu B, B menunggu A) ditolak (422).
-- [ ] `GET /tasks/{id}` memuat `subtasks` dan `open_dependencies`.
+- [x] `GET/POST /tasks/{id}/dependencies`, `PATCH /dependencies/{id}` (status `resolved`), `DELETE /dependencies/{id}`.
+- [x] Dependensi berupa task lain **atau** deskripsi eksternal, tidak keduanya (422).
+- [x] Dependensi yang membentuk siklus (A menunggu B, B menunggu A) ditolak (422).
+- [x] `GET /tasks/{id}` memuat `subtasks` dan `open_dependencies`.
+
+Catatan R1-07: `depends_on_task_id` menerima ID numerik atau task_key. Selain aturan di kriteria, `POST` juga menolak (422) task yang menunggu dirinya sendiri, pasangan yang sudah ada (UNIQUE di database), dan task tujuan yang sudah Done/Cancelled (dependensinya tidak akan pernah terlepas). Pemeriksaan siklus hanya menelusuri dependensi `open`, langsung maupun tidak langsung. `PATCH /dependencies/{id}` hanya untuk hambatan eksternal (sesuai ringkasan di kontrak); dependensi ke task lain → 422, karena terlepas otomatis saat task itu Done (R1-12). `PATCH` berulang tidak mengubah `resolved_at`. Dependensi milik task terhapus menghasilkan 404. `PATCH /tasks/{id}` kini juga mengembalikan `TaskDetail`, sesuai kontrak.
 
 ### R1-08 · Progres satuan · S
 Bergantung pada: R1-06 · FR-23
@@ -347,3 +349,7 @@ Kriteria penerimaan:
 - R1-06: ukuran halaman `GET /tasks` tetap 50 (`TaskController::PER_PAGE`); kontrak tidak punya parameter `limit`.
 - R1-06: cursor `GET /tasks` diurutkan pada alias `cursor_updated_at` (teks timestamptz mentah). Cast `datetime` Eloquent mengubah nilai cursor menjadi detik saja sehingga baris dalam detik yang sama terlewat; pola yang sama perlu dipakai untuk cursor pada kolom waktu lain. Catatan terkait: Eloquent menulis waktu tanpa microsecond (`UsesTimestampTz`), sedangkan `now()` PostgreSQL menyimpan microsecond.
 - R1-06: `POST/PATCH /tasks` belum menerima field satuan `unit_*` (R1-08); field itu kini diabaikan. `parent_task_id` sudah diterima (kriteria 1 R1-07 dikerjakan di branch R1-06 atas permintaan pengguna). `GET /tasks/{id}` baru mengembalikan field `Task`; tambahan `TaskDetail` (`subtasks`, `open_dependencies`, `latest_context`, ...) diisi oleh R1-07 dan R1-10.
+- R1-07: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada keempat endpoint dependensi dan 422 pada `PATCH /dependencies/{id}`, beserta penjelasan bahwa `PATCH` hanya untuk hambatan eksternal.
+- R1-07 (ide, belum dikerjakan): task yang di-soft delete membuat dependensi yang menunggunya tetap `open` selamanya, sehingga task penunggu tidak pernah layak direkomendasikan. Putuskan di R1-12: lepaskan (`resolved`) atau hapus dependensi itu saat task dihapus.
+- R1-07 (ide, belum dikerjakan): subtask yang menunggu induknya sendiri akan buntu, karena induk tidak bisa Done selama subtask terbuka (R1-09). Belum ditolak.
+- R1-07: pemeriksaan siklus dependensi tidak memakai kunci; dua permintaan bersamaan (A→B dan B→A) secara teori bisa lolos. Risiko kecil untuk satu pengguna.

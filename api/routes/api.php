@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\DependencyController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\KeyResultController;
 use App\Http\Controllers\Api\MeController;
@@ -30,4 +31,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // {task} accepts a numeric ID or a task_key (Task::resolveRouteBinding).
     Route::apiResource('tasks', TaskController::class);
+
+    // {dependency} is numeric; Dependency::resolveRouteBinding returns 404 otherwise.
+    Route::apiResource('tasks.dependencies', DependencyController::class)
+        ->only(['index', 'store', 'update', 'destroy'])
+        ->shallow();
 });

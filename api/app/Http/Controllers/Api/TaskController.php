@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
+use App\Http\Resources\TaskDetailResource;
 use App\Http\Resources\TaskResource;
 use App\Models\KeyResult;
 use App\Models\Task;
@@ -91,16 +92,16 @@ class TaskController extends Controller
         return (new TaskResource($task->fresh()))->response()->setStatusCode(201);
     }
 
-    public function show(Task $task): TaskResource
+    public function show(Task $task): TaskDetailResource
     {
-        return new TaskResource($task);
+        return TaskDetailResource::load($task);
     }
 
-    public function update(UpdateTaskRequest $request, Task $task): TaskResource
+    public function update(UpdateTaskRequest $request, Task $task): TaskDetailResource
     {
         $task->update($request->validated());
 
-        return new TaskResource($task->fresh());
+        return TaskDetailResource::load($task->fresh());
     }
 
     /** Soft delete: the row, its transition log, and its sessions stay for metrics. */
