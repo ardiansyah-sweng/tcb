@@ -139,13 +139,13 @@ Catatan R1-05: `task_counts` selalu memuat ketujuh status (0 bila kosong) agar U
 Bergantung pada: R1-03 · FR-03, FR-04
 
 Kriteria penerimaan:
-- [ ] `POST /tasks` hanya mewajibkan `title`; task lahir sebagai `new` dengan `task_key` otomatis.
-- [ ] `start_ready: true` langsung memindahkan task ke `ready` (lewat TransitionService setelah R1-10; sementara lewat update status langsung).
-- [ ] `GET /tasks` mendukung filter `state` (dipisah koma), `key_result_id`, `objective_id`, `label`, `orphan`, `q` (judul atau task_key), dan cursor pagination.
-- [ ] `GET /tasks/{id}` menerima ID numerik **atau** task_key (`TCB-31`).
-- [ ] `PATCH /tasks/{id}` menolak field `state` dengan 422 dan pesan yang menunjuk ke endpoint transisi.
-- [ ] `DELETE /tasks/{id}` melakukan soft delete; task terhapus tidak muncul di daftar, log tetap utuh.
-- [ ] `is_orphan` bernilai true bila `key_result_id` kosong.
+- [x] `POST /tasks` hanya mewajibkan `title`; task lahir sebagai `new` dengan `task_key` otomatis.
+- [x] `start_ready: true` langsung memindahkan task ke `ready` (lewat TransitionService setelah R1-10; sementara lewat update status langsung).
+- [x] `GET /tasks` mendukung filter `state` (dipisah koma), `key_result_id`, `objective_id`, `label`, `orphan`, `q` (judul atau task_key), dan cursor pagination.
+- [x] `GET /tasks/{id}` menerima ID numerik **atau** task_key (`TCB-31`).
+- [x] `PATCH /tasks/{id}` menolak field `state` dengan 422 dan pesan yang menunjuk ke endpoint transisi.
+- [x] `DELETE /tasks/{id}` melakukan soft delete; task terhapus tidak muncul di daftar, log tetap utuh.
+- [x] `is_orphan` bernilai true bila `key_result_id` kosong.
 
 ### R1-07 · Subtask dan dependensi · M
 Bergantung pada: R1-06 · FR-11
@@ -342,3 +342,8 @@ Kriteria penerimaan:
 - `ObjectiveDetail.orphan_task_count` dan `time_allocation` (jam per KR 7 hari terakhir) belum diimplementasikan; tidak ada di kriteria R1 mana pun. Perlu diputuskan: `orphan_task_count` menghitung task orphan milik pengguna secara global (orphan tidak terikat Objective), dan `time_allocation` lebih cocok di tampilan progres goal (FR-19, Rilis 3).
 - Respons 404 kini seragam `{code: not_found, message: "<Model> tidak ditemukan."}` (renderer di `bootstrap/app.php`); tambahkan model baru ke peta label di sana.
 - `GlobalScope` pemilik hanya aktif saat ada pengguna login. Job antrean dan perintah konsol (mis. `CalendarSyncJob`, Rilis 2) harus menyaring `owner_id` sendiri.
+- R1-06: `start_ready` memindahkan task ke `ready` dengan update status langsung di `TaskController::moveToReady()` (diizinkan sementara oleh kriteria). Ganti dengan `TransitionService` di R1-10.
+- R1-06: `GET /tasks?sort=` baru menerima `updated` (bawaan). `score` (kontrak) menunggu R1-13; `deadline` (kontrak) belum masuk kriteria story mana pun. Keduanya kini 422 "Urutan yang tersedia saat ini hanya updated." Saat dibuat, urutkan `deadline` dengan `coalesce(deadline_at, 'infinity')` beralias agar cursor tidak rusak oleh NULL.
+- R1-06: ukuran halaman `GET /tasks` tetap 50 (`TaskController::PER_PAGE`); kontrak tidak punya parameter `limit`.
+- R1-06: cursor `GET /tasks` diurutkan pada alias `cursor_updated_at` (teks timestamptz mentah). Cast `datetime` Eloquent mengubah nilai cursor menjadi detik saja sehingga baris dalam detik yang sama terlewat; pola yang sama perlu dipakai untuk cursor pada kolom waktu lain. Catatan terkait: Eloquent menulis waktu tanpa microsecond (`UsesTimestampTz`), sedangkan `now()` PostgreSQL menyimpan microsecond.
+- R1-06: `POST/PATCH /tasks` belum menerima `parent_task_id` (R1-07) dan field satuan `unit_*` (R1-08); field itu kini diabaikan. `GET /tasks/{id}` baru mengembalikan field `Task`; tambahan `TaskDetail` (`subtasks`, `open_dependencies`, `latest_context`, ...) diisi oleh R1-07 dan R1-10.

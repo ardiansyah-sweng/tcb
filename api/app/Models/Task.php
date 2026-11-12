@@ -50,6 +50,33 @@ class Task extends Model
         ];
     }
 
+    /**
+     * {task} in a URL is a numeric ID or a task_key such as TCB-31 (any case).
+     * The owner and soft-delete scopes still apply; anything else is a 404.
+     *
+     * @param  mixed  $value
+     * @param  string|null  $field
+     */
+    public function resolveRouteBinding($value, $field = null): ?self
+    {
+        if ($field !== null) {
+            return parent::resolveRouteBinding($value, $field);
+        }
+
+        $value = (string) $value;
+
+        // Up to 18 digits always fits in a bigint, so PostgreSQL never rejects the cast.
+        if (preg_match('/^\d{1,18}$/', $value)) {
+            return $this->newQuery()->whereKey((int) $value)->first();
+        }
+
+        if (preg_match('/^TCB-\d+$/i', $value)) {
+            return $this->newQuery()->where('task_key', strtoupper($value))->first();
+        }
+
+        return null;
+    }
+
     /** @return BelongsTo<KeyResult, $this> */
     public function keyResult(): BelongsTo
     {
