@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Task;
+use App\Support\ProgressUnit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -40,10 +41,12 @@ class TaskResource extends JsonResource
             'energy' => $this->energy,
             'next_step' => $this->next_step,
             'progress_unit' => $this->unit_total === null ? null : [
-                'done' => $this->unit_done ?? 0,
+                'done' => $this->unit_done ?? 0.0,
                 'total' => $this->unit_total,
-                'name' => $this->unit_name ?? 'unit',
+                'name' => $this->unit_name ?? ProgressUnit::DEFAULT_NAME,
             ],
+            // Derived from the label on every response; never stored (R1-08).
+            'unit_name_suggestion' => ProgressUnit::suggestName($this->label),
             'time_spent_minutes' => $this->time_spent_minutes,
             'switch_count' => $this->switch_count,
             'last_activity_at' => $this->last_activity_at,

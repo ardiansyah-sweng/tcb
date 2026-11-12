@@ -163,11 +163,13 @@ Catatan R1-07: `depends_on_task_id` menerima ID numerik atau task_key. Selain at
 Bergantung pada: R1-06 · FR-23
 
 Kriteria penerimaan:
-- [ ] `unit_total`, `unit_done`, `unit_name` opsional saat membuat dan mengubah task.
-- [ ] `unit_name` kosong disimpan sebagai `unit`.
-- [ ] Saran nama satuan dari label (dikembalikan sebagai saran, tidak disimpan otomatis): `Koreksi ujian` → `lembar`, `Menulis paper` → `halaman`, `Mengajar` → `slide`; label lain → `unit`.
-- [ ] `unit_done` > `unit_total` ditolak dengan pesan ramah (422), bukan galat 500.
-- [ ] Respons task memuat `progress_unit` (`done`, `total`, `name`) atau `null`.
+- [x] `unit_total`, `unit_done`, `unit_name` opsional saat membuat dan mengubah task.
+- [x] `unit_name` kosong disimpan sebagai `unit`.
+- [x] Saran nama satuan dari label (dikembalikan sebagai saran, tidak disimpan otomatis): `Koreksi ujian` → `lembar`, `Menulis paper` → `halaman`, `Mengajar` → `slide`; label lain → `unit`.
+- [x] `unit_done` > `unit_total` ditolak dengan pesan ramah (422), bukan galat 500.
+- [x] Respons task memuat `progress_unit` (`done`, `total`, `name`) atau `null`.
+
+Catatan R1-08: atas persetujuan pengguna, kontrak berubah: `TaskCreate` menerima `unit_done`, dan `Task` memuat `unit_name_suggestion` (string, dihitung dari label setiap respons, tidak disimpan; pencocokan label tanpa membedakan huruf besar-kecil). `unit_name` kosong disimpan sebagai `unit` hanya bila task punya `unit_total`; tanpa total, nama tetap kosong. `PATCH` dengan `unit_total: null` menghapus progres satuan (`unit_done` dan `unit_name` ikut dikosongkan). Pemeriksaan `unit_done` ≤ `unit_total` memakai nilai efektif (yang dikirim atau yang tersimpan): melebihi → 422 di `unit_done`; menurunkan total di bawah jumlah selesai → 422 di `unit_total`; `unit_done` tanpa total → 422. Bila validasi terlewat, galat CHECK `chk_tasks_unit_le_total`/`chk_tasks_unit_needs_total` dari database dipetakan ke 422 oleh `App\Support\DatabaseErrors` (renderer di `bootstrap/app.php`), yang bisa diperluas R1-09 untuk `chk_*` lain.
 
 ---
 
@@ -348,7 +350,7 @@ Kriteria penerimaan:
 - R1-06: `GET /tasks?sort=` baru menerima `updated` (bawaan). `score` (kontrak) menunggu R1-13; `deadline` (kontrak) belum masuk kriteria story mana pun. Keduanya kini 422 "Urutan yang tersedia saat ini hanya updated." Saat dibuat, urutkan `deadline` dengan `coalesce(deadline_at, 'infinity')` beralias agar cursor tidak rusak oleh NULL.
 - R1-06: ukuran halaman `GET /tasks` tetap 50 (`TaskController::PER_PAGE`); kontrak tidak punya parameter `limit`.
 - R1-06: cursor `GET /tasks` diurutkan pada alias `cursor_updated_at` (teks timestamptz mentah). Cast `datetime` Eloquent mengubah nilai cursor menjadi detik saja sehingga baris dalam detik yang sama terlewat; pola yang sama perlu dipakai untuk cursor pada kolom waktu lain. Catatan terkait: Eloquent menulis waktu tanpa microsecond (`UsesTimestampTz`), sedangkan `now()` PostgreSQL menyimpan microsecond.
-- R1-06: `POST/PATCH /tasks` belum menerima field satuan `unit_*` (R1-08); field itu kini diabaikan. `parent_task_id` sudah diterima (kriteria 1 R1-07 dikerjakan di branch R1-06 atas permintaan pengguna). `GET /tasks/{id}` baru mengembalikan field `Task`; tambahan `TaskDetail` (`subtasks`, `open_dependencies`, `latest_context`, ...) diisi oleh R1-07 dan R1-10.
+- R1-06: field satuan `unit_*` kini diterima `POST/PATCH /tasks` (R1-08). `parent_task_id` sudah diterima (kriteria 1 R1-07 dikerjakan di branch R1-06 atas permintaan pengguna). `GET /tasks/{id}` baru mengembalikan field `Task`; tambahan `TaskDetail` (`subtasks`, `open_dependencies`, `latest_context`, ...) diisi oleh R1-07 dan R1-10.
 - R1-07: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada keempat endpoint dependensi dan 422 pada `PATCH /dependencies/{id}`, beserta penjelasan bahwa `PATCH` hanya untuk hambatan eksternal.
 - R1-07 (ide, belum dikerjakan): task yang di-soft delete membuat dependensi yang menunggunya tetap `open` selamanya, sehingga task penunggu tidak pernah layak direkomendasikan. Putuskan di R1-12: lepaskan (`resolved`) atau hapus dependensi itu saat task dihapus.
 - R1-07 (ide, belum dikerjakan): subtask yang menunggu induknya sendiri akan buntu, karena induk tidak bisa Done selama subtask terbuka (R1-09). Belum ditolak.

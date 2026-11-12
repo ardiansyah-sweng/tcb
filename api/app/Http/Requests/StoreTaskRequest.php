@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesProgressUnit;
+use App\Models\Task;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -11,11 +13,14 @@ use Illuminate\Validation\Rules\Exists;
  * Schema TaskCreate in docs/tcb_openapi.yaml. Only the title is required
  * (CLAUDE.md rule 6); everything else falls back to database defaults.
  *
- * The unit fields are added by R1-08. A new task has no subtasks, so its
- * parent cannot form a cycle; UpdateTaskRequest checks cycles.
+ * Unit progress (R1-08) is validated by ValidatesProgressUnit. A new task has
+ * no subtasks, so its parent cannot form a cycle; UpdateTaskRequest checks
+ * cycles.
  */
 class StoreTaskRequest extends FormRequest
 {
+    use ValidatesProgressUnit;
+
     /** Shared with UpdateTaskRequest. */
     public const MESSAGES = [
         'title.required' => 'Judul wajib diisi.',
@@ -55,7 +60,7 @@ class StoreTaskRequest extends FormRequest
             'deadline_at' => ['nullable', 'date'],
             'estimate_minutes' => ['bail', 'nullable', 'integer', 'min:1'],
             'energy' => ['required', 'in:focus,light'],
-        ];
+        ] + self::progressUnitRules();
     }
 
     /**
@@ -77,7 +82,30 @@ class StoreTaskRequest extends FormRequest
      */
     public function messages(): array
     {
-        return self::MESSAGES;
+        return self::MESSAGES + self::PROGRESS_UNIT_MESSAGES;
+    }
+
+    /**
+     * @return array<int, callable>
+     */
+    public function after(): array
+    {
+        return [$this->progressUnitCheck()];
+    }
+
+    /**
+     * Attributes for Task::create().
+     *
+     * @return array<string, mixed>
+     */
+    public function taskAttributes(): array
+    {
+        return $this->withProgressUnitDefaults($this->safe()->except('start_ready'));
+    }
+
+    protected function existingTask(): ?Task
+    {
+        return null;
     }
 
     /** Another owner's key result is reported as not found. */

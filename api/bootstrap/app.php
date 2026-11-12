@@ -4,8 +4,10 @@ use App\Models\Dependency;
 use App\Models\KeyResult;
 use App\Models\Objective;
 use App\Models\Task;
+use App\Support\DatabaseErrors;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -34,6 +36,13 @@ return Application::configure(basePath: dirname(__DIR__))
                     'code' => 'unauthenticated',
                     'message' => 'Silakan masuk terlebih dahulu.',
                 ], 401);
+            }
+        });
+
+        // Database rule violations (CLAUDE.md rule 3) become a ValidationErrorBody 422.
+        $exceptions->render(function (QueryException $e, Request $request) use ($wantsJson) {
+            if ($wantsJson($request) && ($body = DatabaseErrors::validationBody($e)) !== null) {
+                return response()->json($body, 422);
             }
         });
 

@@ -80,7 +80,7 @@ class TaskController extends Controller
     public function store(StoreTaskRequest $request): JsonResponse
     {
         $task = DB::transaction(function () use ($request) {
-            $task = Task::create($request->safe()->except('start_ready'));
+            $task = Task::create($request->taskAttributes());
 
             if ($request->boolean('start_ready')) {
                 $this->moveToReady($task);
@@ -99,7 +99,7 @@ class TaskController extends Controller
 
     public function update(UpdateTaskRequest $request, Task $task): TaskDetailResource
     {
-        $task->update($request->validated());
+        $task->update($request->taskAttributes());
 
         return TaskDetailResource::load($task->fresh());
     }

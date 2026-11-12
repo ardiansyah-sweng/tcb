@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Http\Requests\Concerns\ValidatesProgressUnit;
 use App\Models\Task;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,8 @@ use Illuminate\Validation\Validator;
  */
 class UpdateTaskRequest extends FormRequest
 {
+    use ValidatesProgressUnit;
+
     /**
      * @return array<string, mixed>
      */
@@ -33,7 +36,23 @@ class UpdateTaskRequest extends FormRequest
      */
     public function messages(): array
     {
-        return StoreTaskRequest::MESSAGES;
+        return StoreTaskRequest::MESSAGES + self::PROGRESS_UNIT_MESSAGES;
+    }
+
+    /**
+     * Attributes for $task->update().
+     *
+     * @return array<string, mixed>
+     */
+    public function taskAttributes(): array
+    {
+        return $this->withProgressUnitDefaults($this->validated());
+    }
+
+    protected function existingTask(): ?Task
+    {
+        /** @var Task */
+        return $this->route('task');
     }
 
     /**
@@ -69,6 +88,7 @@ class UpdateTaskRequest extends FormRequest
                     $validator->errors()->add('parent_task_id', 'Task induk tidak boleh subtask dari task ini (membentuk siklus).');
                 }
             },
+            $this->progressUnitCheck(),
         ];
     }
 

@@ -1072,8 +1072,9 @@ components:
         deadline_at: { type: [string, 'null'], format: date-time }
         estimate_minutes: { type: [integer, 'null'], minimum: 1 }
         energy: { type: string, enum: [focus, light], default: focus }
+        unit_done: { type: [number, 'null'], minimum: 0, description: 'Wajib ada unit_total; tidak boleh melebihi unit_total' }
         unit_total: { type: [number, 'null'], exclusiveMinimum: 0 }
-        unit_name: { type: [string, 'null'], description: 'Default "unit"; klien boleh menyarankan dari label' }
+        unit_name: { type: [string, 'null'], description: 'Kosong disimpan sebagai "unit" bila unit_total terisi. Saran dari label ada di Task.unit_name_suggestion' }
         start_ready:
           type: boolean
           default: false
@@ -1093,13 +1094,16 @@ components:
         estimate_minutes: { type: [integer, 'null'], minimum: 1 }
         energy: { type: string, enum: [focus, light] }
         next_step: { type: [string, 'null'] }
-        unit_done: { type: [number, 'null'], minimum: 0 }
-        unit_total: { type: [number, 'null'], exclusiveMinimum: 0 }
-        unit_name: { type: [string, 'null'] }
+        unit_done: { type: [number, 'null'], minimum: 0, description: 'Tidak boleh melebihi unit_total (yang dikirim atau yang tersimpan)' }
+        unit_total:
+          type: [number, 'null']
+          exclusiveMinimum: 0
+          description: null = hapus progres satuan (unit_done dan unit_name ikut dikosongkan)
+        unit_name: { type: [string, 'null'], description: 'Kosong disimpan sebagai "unit" bila unit_total terisi' }
 
     Task:
       type: object
-      required: [id, task_key, title, state, priority, energy, is_orphan, time_spent_minutes, switch_count, created_at, updated_at]
+      required: [id, task_key, title, state, priority, energy, is_orphan, unit_name_suggestion, time_spent_minutes, switch_count, created_at, updated_at]
       properties:
         id: { type: integer }
         task_key: { type: string, example: TCB-31 }
@@ -1123,6 +1127,13 @@ components:
           oneOf:
             - type: 'null'
             - $ref: '#/components/schemas/ProgressUnit'
+        unit_name_suggestion:
+          type: string
+          readOnly: true
+          description: |
+            Saran nama satuan dari label, untuk tawaran satu klik di form; tidak disimpan.
+            Koreksi ujian → lembar, Menulis paper → halaman, Mengajar → slide; lainnya → unit.
+          example: lembar
         time_spent_minutes: { type: integer }
         switch_count: { type: integer }
         last_activity_at: { type: [string, 'null'], format: date-time }
