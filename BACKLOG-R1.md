@@ -102,11 +102,11 @@ Bergantung pada: R1-02
 Sebagai pemilik, saya ingin login dengan aman tanpa ada orang lain yang bisa mendaftar.
 
 Kriteria penerimaan:
-- [ ] Login email + password menghasilkan token Sanctum; logout mencabut token.
-- [ ] Tidak ada endpoint registrasi publik; akun dibuat lewat `php artisan tcb:create-user`.
-- [ ] `GET /me` mengembalikan profil dan pengaturan (WIP limit 1, bobot skor default, zona waktu Asia/Jakarta).
-- [ ] Semua endpoint selain login dan health mengembalikan 401 tanpa token.
-- [ ] Setiap query dibatasi `owner_id` pengguna yang login (global scope), siap untuk multi-user v2.
+- [x] Login email + password menghasilkan token Sanctum; logout mencabut token.
+- [x] Tidak ada endpoint registrasi publik; akun dibuat lewat `php artisan tcb:create-user`.
+- [x] `GET /me` mengembalikan profil dan pengaturan (WIP limit 1, bobot skor default, zona waktu Asia/Jakarta).
+- [x] Semua endpoint selain login dan health mengembalikan 401 tanpa token.
+- [x] Setiap query dibatasi `owner_id` pengguna yang login (global scope), siap untuk multi-user v2.
 
 ---
 
@@ -333,3 +333,6 @@ Kriteria penerimaan:
 ## Catatan teknis (boleh dirapikan di story mana pun)
 
 - CI: `actions/checkout@v4` dan `actions/setup-node@v4` masih memakai Node.js 20 yang sudah usang (peringatan GitHub, belum menggagalkan CI). Naikkan ke versi mayor terbaru; sekalian pertimbangkan mematok runner (mis. `ubuntu-24.04`) karena label `ubuntu-latest` sedang dipindahkan ke Ubuntu 26.
+- Token Sanctum kedaluwarsa setelah 30 hari, tetapi barisnya tetap di `personal_access_tokens`. Jadwalkan `php artisan sanctum:prune-expired --hours=24` harian saat scheduler sudah berjalan (paling lambat R1-21).
+- Pesan validasi bawaan Laravel masih berbahasa Inggris (folder `lang/id` belum ada); R1-03 memakai pesan kustom. Pertimbangkan `php artisan lang:publish` + terjemahan `id` sebelum endpoint dengan banyak validasi (R1-04 dst.).
+- `GlobalScope` pemilik hanya aktif saat ada pengguna login. Job antrean dan perintah konsol (mis. `CalendarSyncJob`, Rilis 2) harus menyaring `owner_id` sendiri.

@@ -37,7 +37,8 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    // TCB authenticates with bearer tokens only (no cookie/session login).
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
@@ -50,7 +51,8 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Tokens are valid for 30 days, then the user logs in again (R1-03).
+    'expiration' => 60 * 24 * 30,
 
     /*
     |--------------------------------------------------------------------------

@@ -12,6 +12,8 @@ info:
       state machine, WIP limit, dan simpan konteks berjalan di satu tempat.
     - Sumber eksternal (kalender) hanya membuat *proposal*; pengguna yang memutuskan.
     - Waktu dalam ISO 8601 (UTC); klien menampilkan sesuai zona waktu pengguna.
+    - Semua endpoint selain `/health` dan `/auth/login` memerlukan token Bearer;
+      tanpa token yang sah responsnya 401 (`Unauthorized`).
 servers:
   - url: https://tcb.example.com/api/v1
 security:
@@ -19,6 +21,7 @@ security:
 
 tags:
   - name: Sistem
+  - name: Autentikasi
   - name: Pengguna
   - name: Goal
   - name: Task
@@ -52,6 +55,52 @@ paths:
               schema: { $ref: '#/components/schemas/Health' }
               example: { status: ok, database: error }
 
+  # ------------------------------------------------------------- Autentikasi
+  /auth/login:
+    post:
+      tags: [Autentikasi]
+      summary: Masuk dengan email dan kata sandi; menghasilkan token Sanctum
+      description: |
+        Tidak ada endpoint registrasi; akun dibuat lewat `php artisan tcb:create-user`.
+        Token berlaku 30 hari. Maksimal 5 percobaan gagal per menit untuk satu email dan IP.
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: Berhasil masuk
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '422':
+          description: Data tidak lengkap, atau email/kata sandi salah
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationErrorBody' }
+              example:
+                message: Email atau kata sandi salah.
+                errors: { email: [Email atau kata sandi salah.] }
+        '429':
+          description: Terlalu banyak percobaan masuk
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              example:
+                code: too_many_attempts
+                message: Terlalu banyak percobaan masuk. Coba lagi dalam 60 detik.
+  /auth/logout:
+    post:
+      tags: [Autentikasi]
+      summary: Keluar; mencabut token yang sedang dipakai
+      operationId: logout
+      responses:
+        '204': { description: Token dicabut }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   # ------------------------------------------------------------------ Pengguna
   /me:
     get:
@@ -64,6 +113,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
     patch:
       tags: [Pengguna]
       summary: Ubah pengaturan (WIP limit, bobot skor, jam kerja, zona waktu)
@@ -79,6 +129,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
   # ---------------------------------------------------------------------- Goal
@@ -831,6 +882,12 @@ components:
       schema: { type: string }
 
   responses:
+    Unauthorized:
+      description: Token tidak ada, tidak sah, kedaluwarsa, atau sudah dicabut
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+          example: { code: unauthenticated, message: Silakan masuk terlebih dahulu. }
     NotFound:
       description: Tidak ditemukan
       content:
@@ -880,6 +937,25 @@ components:
             minItems: 2
             maxItems: 2
         default_deadline_offset_minutes: { type: integer, minimum: 0, default: 1440 }
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+        device_name:
+          type: string
+          maxLength: 100
+          description: Nama token, mis. "Laptop kantor". Default "web".
+
+    LoginResponse:
+      type: object
+      required: [token, token_type, user]
+      properties:
+        token: { type: string, description: 'Kirim sebagai header `Authorization: Bearer <token>`.' }
+        token_type: { type: string, const: Bearer }
+        user: { $ref: '#/components/schemas/User' }
 
     UserUpdate:
       type: object
@@ -1290,7 +1366,7 @@ components:
       properties:
         code:
           type: string
-          enum: [invalid_transition, context_required, reason_required, not_found, conflict, integration_error]
+          enum: [invalid_transition, context_required, reason_required, not_found, conflict, integration_error, unauthenticated, too_many_attempts]
         message: { type: string }
         details: { type: object }
 
