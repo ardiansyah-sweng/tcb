@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\KeyResultController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\ObjectiveController;
 use Illuminate\Support\Facades\Route;
@@ -20,4 +21,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('objectives', ObjectiveController::class)
         ->only(['index', 'store', 'show', 'update'])
         ->whereNumber('objective');
+
+    Route::apiResource('objectives.key-results', KeyResultController::class)
+        ->only(['store', 'update', 'destroy'])
+        ->shallow()
+        ->whereNumber(['objective', 'key_result']);
 });

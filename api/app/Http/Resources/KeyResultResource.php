@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Schema KeyResult in docs/tcb_openapi.yaml (task_counts follows in R1-05).
- * Load the model with the withProgress() scope.
+ * Schema KeyResult in docs/tcb_openapi.yaml. Load the model with the
+ * withProgress() and withTaskCounts() scopes.
  *
  * @mixin KeyResult
  */
@@ -32,6 +32,7 @@ class KeyResultResource extends JsonResource
             'current_value' => $this->current_value,
             'unit' => $this->unit,
             'progress' => (float) $this->progress,
+            'task_counts' => $this->taskCounts(),
         ];
     }
 }

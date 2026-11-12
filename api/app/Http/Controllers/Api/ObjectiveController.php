@@ -62,7 +62,7 @@ class ObjectiveController extends Controller
     {
         return Objective::withProgress()
             ->when($withKeyResults, fn ($query) => $query->with([
-                'keyResults' => fn (HasMany $keyResults) => $keyResults->withProgress()->orderBy('id'),
+                'keyResults' => fn (HasMany $keyResults) => $keyResults->withProgress()->withTaskCounts()->orderBy('id'),
             ]))
             ->findOrFail($id);
     }

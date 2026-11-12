@@ -23,6 +23,13 @@ class Task extends Model
     /** @use HasFactory<TaskFactory> */
     use BelongsToOwner, HasFactory, SoftDeletes, UsesTimestampTz;
 
+    /**
+     * All task states, in lifecycle order (mirrors the CHECK on tasks.state).
+     * This is the list of states only; the allowed transitions live in the
+     * allowed_transitions table (CLAUDE.md rule 2).
+     */
+    public const STATES = ['new', 'ready', 'running', 'waiting', 'suspended', 'done', 'cancelled'];
+
     protected $guarded = [
         'id', 'task_key', 'state', 'state_reason', 'state_changed_at', 'ready_since',
     ];

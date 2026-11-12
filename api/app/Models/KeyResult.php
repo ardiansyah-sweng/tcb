@@ -48,6 +48,36 @@ class KeyResult extends Model
         ])->withCasts(['progress' => 'float']);
     }
 
+    /**
+     * Add one `tasks_<state>_count` column per task state (soft-deleted
+     * tasks excluded). Read them as an array with taskCounts().
+     *
+     * @param  Builder<KeyResult>  $query
+     */
+    #[Scope]
+    protected function withTaskCounts(Builder $query): void
+    {
+        $query->withCount(array_combine(
+            array_map(fn (string $state) => "tasks as tasks_{$state}_count", Task::STATES),
+            array_map(fn (string $state) => fn (Builder $tasks) => $tasks->where('state', $state), Task::STATES),
+        ));
+    }
+
+    /**
+     * Task count per state, every state present (0 when none).
+     *
+     * @return array<string, int>
+     */
+    public function taskCounts(): array
+    {
+        $counts = [];
+        foreach (Task::STATES as $state) {
+            $counts[$state] = (int) $this->getAttribute("tasks_{$state}_count");
+        }
+
+        return $counts;
+    }
+
     /** @return BelongsTo<Objective, $this> */
     public function objective(): BelongsTo
     {

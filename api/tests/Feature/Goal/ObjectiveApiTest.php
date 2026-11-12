@@ -100,6 +100,10 @@ it('shows an objective with its key results', function () {
             'current_value' => null,
             'unit' => null,
             'progress' => 0,
+            'task_counts' => [
+                'new' => 0, 'ready' => 0, 'running' => 0, 'waiting' => 0,
+                'suspended' => 0, 'done' => 0, 'cancelled' => 0,
+            ],
         ]);
 });
 

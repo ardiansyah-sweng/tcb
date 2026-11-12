@@ -127,11 +127,13 @@ Catatan R1-04: detail Objective sudah memuat `key_results` (dengan `progress`); 
 Bergantung pada: R1-04 · FR-02
 
 Kriteria penerimaan:
-- [ ] `POST /objectives/{id}/key-results`, `PATCH/DELETE /key-results/{id}`.
-- [ ] Default: bobot 1, mode progres `auto`. Mode `manual` mewajibkan `target_value`.
-- [ ] Menghapus KR membuat task terkait menjadi orphan (`key_result_id = null`), bukan ikut terhapus.
-- [ ] Respons memuat `progress` dari view `key_result_progress` dan `task_counts` per status.
-- [ ] Tes: progres otomatis memakai estimasi; task tanpa estimasi dihitung 60 menit; task Cancelled tidak dihitung.
+- [x] `POST /objectives/{id}/key-results`, `PATCH/DELETE /key-results/{id}`.
+- [x] Default: bobot 1, mode progres `auto`. Mode `manual` mewajibkan `target_value`.
+- [x] Menghapus KR membuat task terkait menjadi orphan (`key_result_id = null`), bukan ikut terhapus.
+- [x] Respons memuat `progress` dari view `key_result_progress` dan `task_counts` per status.
+- [x] Tes: progres otomatis memakai estimasi; task tanpa estimasi dihitung 60 menit; task Cancelled tidak dihitung.
+
+Catatan R1-05: `task_counts` selalu memuat ketujuh status (0 bila kosong) agar UI tidak perlu mengisi nilai yang hilang; task terhapus (soft delete) tidak dihitung, task Cancelled tetap dihitung di `cancelled`. Detail Objective kini juga memuat `task_counts` per KR. Tes progres memindahkan status task langsung lewat SQL (`walkTo`) karena TransitionService baru ada di R1-10.
 
 ### R1-06 · API task: tambah cepat, daftar, detail, ubah, hapus · M
 Bergantung pada: R1-03 · FR-03, FR-04
