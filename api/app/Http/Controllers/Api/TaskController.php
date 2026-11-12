@@ -9,6 +9,7 @@ use App\Http\Resources\TaskDetailResource;
 use App\Http\Resources\TaskResource;
 use App\Models\KeyResult;
 use App\Models\Task;
+use App\Services\DependencyService;
 use App\Services\TransitionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -106,9 +107,16 @@ class TaskController extends Controller
     }
 
     /** Soft delete: the row, its transition log, and its sessions stay for metrics. */
-    public function destroy(Task $task): Response
+    /**
+     * Soft delete. Tasks waiting for this one are released like when it is
+     * Done (decision 12 Nov 2026), so they do not stay Waiting forever.
+     */
+    public function destroy(Task $task, DependencyService $dependencies): Response
     {
-        $task->delete();
+        DB::transaction(function () use ($task, $dependencies) {
+            $task->delete();
+            $dependencies->resolveWaitingOn($task);
+        });
 
         return response()->noContent();
     }

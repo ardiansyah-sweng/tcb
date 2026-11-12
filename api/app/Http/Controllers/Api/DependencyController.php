@@ -8,6 +8,7 @@ use App\Http\Requests\StoreDependencyRequest;
 use App\Http\Resources\DependencyResource;
 use App\Models\Dependency;
 use App\Models\Task;
+use App\Services\DependencyService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -53,16 +54,12 @@ class DependencyController extends Controller
 
     /**
      * Idempotent: resolving an already resolved blocker keeps its resolved_at.
-     * R1-12 adds the DependencyService check that moves a Waiting task without
-     * open dependencies back to Ready.
+     * DependencyService then moves the task to Ready if it is Waiting without
+     * open dependencies.
      */
-    public function update(ResolveDependencyRequest $request, Dependency $dependency): DependencyResource
+    public function update(ResolveDependencyRequest $request, Dependency $dependency, DependencyService $dependencies): DependencyResource
     {
-        if ($dependency->status !== 'resolved') {
-            $dependency->update(['status' => 'resolved', 'resolved_at' => now()]);
-        }
-
-        return new DependencyResource($dependency->load('dependsOn'));
+        return new DependencyResource($dependencies->resolveExternal($dependency)->load('dependsOn'));
     }
 
     public function destroy(Dependency $dependency): Response

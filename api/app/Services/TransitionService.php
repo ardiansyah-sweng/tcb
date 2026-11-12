@@ -20,7 +20,8 @@ use InvalidArgumentException;
  *    task, close the work session, add the time, count a switch unless the
  *    task is finished;
  * 4. change the state; entering Running opens a new work session.
- * Any failure rolls back every step. R1-12 adds the dependency release.
+ * 5. becoming Done: DependencyService releases the tasks waiting for it.
+ * Any failure rolls back every step.
  */
 class TransitionService
 {
@@ -29,6 +30,7 @@ class TransitionService
     public function __construct(
         private readonly TaskStateMachine $machine,
         private readonly ContextService $contexts,
+        private readonly DependencyService $dependencies,
     ) {}
 
     /**
@@ -72,10 +74,7 @@ class TransitionService
                 }
 
                 if ($from === 'running') {
-                    $locked->time_spent_minutes += $this->closeSession($locked);
-                    if ($this->machine->isContextSwitch($from, $to)) {
-                        $locked->switch_count++;
-                    }
+                    $this->leaveRunning($locked, $to);
                 }
 
                 $locked->forceFill([
@@ -92,6 +91,12 @@ class TransitionService
 
                 if ($to === 'running') {
                     $this->openSession($locked);
+                }
+
+                // Step 6: release the tasks waiting for this one, same transaction.
+                // Their transitions set tcb.source to their own source (system).
+                if ($to === 'done') {
+                    $this->dependencies->resolveWaitingOn($locked);
                 }
 
                 return $locked->fresh();
@@ -131,6 +136,15 @@ class TransitionService
             if ($open !== []) {
                 throw TransitionRejected::openSubtasks($open);
             }
+        }
+    }
+
+    /** Close the session, add its time, and count a switch unless the task is finished. */
+    private function leaveRunning(Task $task, string $to): void
+    {
+        $task->time_spent_minutes += $this->closeSession($task);
+        if ($this->machine->isContextSwitch('running', $to)) {
+            $task->switch_count++;
         }
     }
 

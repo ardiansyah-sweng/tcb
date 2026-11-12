@@ -219,10 +219,11 @@ Kriteria penerimaan:
 Bergantung pada: R1-07, R1-10 · Spesifikasi: SRS bagian 12
 
 Kriteria penerimaan:
-- [ ] Saat task menjadi Done, dependensi yang menunggunya ditandai `resolved` dalam transaksi yang sama.
-- [ ] Task Waiting tanpa dependensi terbuka lagi pindah ke Ready dengan sumber `system` di log.
-- [ ] Menandai hambatan eksternal `resolved` juga memicu pemeriksaan yang sama.
-- [ ] Task Waiting yang masih punya dependensi terbuka lain tetap Waiting.
+- [x] Saat task menjadi Done, dependensi yang menunggunya ditandai `resolved` dalam transaksi yang sama.
+- [x] Task Waiting tanpa dependensi terbuka lagi pindah ke Ready dengan sumber `system` di log.
+- [x] Menandai hambatan eksternal `resolved` juga memicu pemeriksaan yang sama.
+- [x] Task Waiting yang masih punya dependensi terbuka lain tetap Waiting.
+- [x] _(Keputusan pengguna 12 Nov 2026, dari catatan R1-07.)_ Menghapus task (soft delete) juga melepaskan dependensi yang menunggunya, dengan pemeriksaan yang sama.
 
 ---
 
@@ -358,10 +359,13 @@ Kriteria penerimaan:
 - R1-06: cursor `GET /tasks` diurutkan pada alias `cursor_updated_at` (teks timestamptz mentah). Cast `datetime` Eloquent mengubah nilai cursor menjadi detik saja sehingga baris dalam detik yang sama terlewat; pola yang sama perlu dipakai untuk cursor pada kolom waktu lain. Catatan terkait: Eloquent menulis waktu tanpa microsecond (`UsesTimestampTz`), sedangkan `now()` PostgreSQL menyimpan microsecond.
 - R1-06: field satuan `unit_*` kini diterima `POST/PATCH /tasks` (R1-08). `parent_task_id` sudah diterima (kriteria 1 R1-07 dikerjakan di branch R1-06 atas permintaan pengguna). `GET /tasks/{id}` baru mengembalikan field `Task`; tambahan `TaskDetail` (`subtasks`, `open_dependencies`, `latest_context`, ...) diisi oleh R1-07 dan R1-10.
 - R1-07: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada keempat endpoint dependensi dan 422 pada `PATCH /dependencies/{id}`, beserta penjelasan bahwa `PATCH` hanya untuk hambatan eksternal.
-- R1-07 (ide, belum dikerjakan): task yang di-soft delete membuat dependensi yang menunggunya tetap `open` selamanya, sehingga task penunggu tidak pernah layak direkomendasikan. Putuskan di R1-12: lepaskan (`resolved`) atau hapus dependensi itu saat task dihapus.
+- R1-07 → R1-12 (selesai): task yang di-soft delete kini melepaskan (`resolved`) dependensi yang menunggunya, dan task Waiting yang tak lagi terhambat pindah ke Ready. Data lama yang terhapus sebelum R1-12 tidak diperbaiki otomatis.
 - R1-07 (ide, belum dikerjakan): subtask yang menunggu induknya sendiri akan buntu, karena induk tidak bisa Done selama subtask terbuka (R1-09). Belum ditolak.
 - R1-10: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada ketiga endpoint `/tasks/{taskId}/contexts…` dan 422 pada `POST /tasks/{taskId}/contexts`.
 - R1-10 (ide, belum dikerjakan): `tasks.last_activity_at` belum diisi di mana pun. Kandidat: isi saat transisi dan saat menyimpan konteks, untuk deteksi `stale_running`.
 - R1-07: pemeriksaan siklus dependensi tidak memakai kunci; dua permintaan bersamaan (A→B dan B→A) secara teori bisa lolos. Risiko kecil untuk satu pengguna.
 - R1-11 (perlu keputusan): `SwitchRequest.from_to` di kontrak menerima `suspended`, tetapi `allowed_transitions` tidak punya `running → suspended`. Kini `/switch` dengan `from_to: suspended` selalu 409 `invalid_transition`. Pilih: tambah transisi itu ke skema, atau hapus `suspended` dari enum kontrak.
 - R1-11: `/switch` mengunci kedua baris task (urut ID) sebelum transisi agar dua pindah berlawanan arah tidak deadlock. Task asal yang ternyata tidak Running → 409 `conflict` (bukan `invalid_transition`, karena mis. `waiting → ready` sah dan akan diam-diam mengubah task yang salah). ID task atau rekomendasi yang tidak dikenal → 422 pada field-nya (kontrak `/switch` tidak punya 404).
+- R1-12 (ide, belum dikerjakan): SRS 12 langkah 3 ("pemberitahuan ringan di Beranda bahwa task siap dikerjakan") belum ada; datanya bisa diambil dari log transisi `waiting → ready` bersumber `system`. Cocok dikerjakan di R1-16 (Beranda).
+- R1-12 (perlu keputusan): dependensi pada task yang menjadi Cancelled tetap `open`, jadi task penunggunya tetap Waiting. Begitu juga `DELETE /dependencies/{id}` tidak memicu pelepasan (tes R1-07 meminta kedua task tidak berubah). Keduanya bisa memakai `DependencyService` bila diinginkan.
+- R1-12: `DependencyService` me-resolve `TransitionService` lewat `app()` karena keduanya saling bergantung (Done memicu pelepasan, pelepasan memakai transisi).
