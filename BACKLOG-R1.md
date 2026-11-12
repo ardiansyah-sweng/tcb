@@ -81,20 +81,20 @@ Bergantung pada: R1-01
 Sebagai pengembang, saya ingin skema `docs/tcb_schema.sql` menjadi migrasi Laravel yang teruji, agar aturan inti terjaga sejak awal.
 
 Kriteria penerimaan:
-- [ ] Migrasi Laravel membuat semua tabel, constraint, indeks, dan view sesuai skema. Trigger, fungsi, dan view ditulis dengan `DB::unprepared()`.
-- [ ] Seeder mengisi `allowed_transitions` (16 baris).
-- [ ] `php artisan migrate:fresh --seed` berhasil di database kosong.
-- [ ] Tes database (port dari 19 skenario uji skema) lulus, minimal mencakup:
-  - [ ] task_key berurutan TCB-1, TCB-2, … per pengguna;
-  - [ ] transisi tidak sah ditolak dengan hint `invalid_transition`;
-  - [ ] Running kedua ditolak dengan hint `wip_full` saat WIP limit 1;
-  - [ ] Waiting/Cancelled tanpa alasan ditolak (`chk_tasks_reason_required`);
-  - [ ] progres satuan melebihi total ditolak (`chk_tasks_unit_le_total`);
-  - [ ] log transisi tidak bisa diubah atau dihapus;
-  - [ ] sumber log mengikuti `SET LOCAL tcb.source`;
-  - [ ] satu sesi terbuka per task; satu acuan deadline per task;
-  - [ ] view `key_result_progress` menghitung progres satuan sebagian (contoh: 22/40 dari task 240 menit → 55%).
-- [ ] Model Eloquent untuk setiap tabel, dengan cast tipe yang benar (jsonb → array, numeric → float).
+- [x] Migrasi Laravel membuat semua tabel, constraint, indeks, dan view sesuai skema. Trigger, fungsi, dan view ditulis dengan `DB::unprepared()`.
+- [x] Seeder mengisi `allowed_transitions` (16 baris).
+- [x] `php artisan migrate:fresh --seed` berhasil di database kosong.
+- [x] Tes database (port dari 19 skenario uji skema) lulus, minimal mencakup:
+  - [x] task_key berurutan TCB-1, TCB-2, … per pengguna;
+  - [x] transisi tidak sah ditolak dengan hint `invalid_transition`;
+  - [x] Running kedua ditolak dengan hint `wip_full` saat WIP limit 1;
+  - [x] Waiting/Cancelled tanpa alasan ditolak (`chk_tasks_reason_required`);
+  - [x] progres satuan melebihi total ditolak (`chk_tasks_unit_le_total`);
+  - [x] log transisi tidak bisa diubah atau dihapus;
+  - [x] sumber log mengikuti `SET LOCAL tcb.source`;
+  - [x] satu sesi terbuka per task; satu acuan deadline per task;
+  - [x] view `key_result_progress` menghitung progres satuan sebagian (contoh: 22/40 dari task 240 menit → 55%).
+- [x] Model Eloquent untuk setiap tabel, dengan cast tipe yang benar (jsonb → array, numeric → float).
 
 ### R1-03 · Autentikasi satu akun · S
 Bergantung pada: R1-02
