@@ -69,7 +69,7 @@ Sebagai pengembang, saya ingin satu perintah menjalankan seluruh lingkungan, aga
 
 Kriteria penerimaan:
 - [x] Monorepo: `api/` (Laravel versi stabil terbaru, mode API saja) dan `web/` (React + Vite + TypeScript, Tailwind CSS, TanStack Query).
-- [ ] `docker compose up` menjalankan `app`, `worker` (queue), `db` (PostgreSQL 16), dan `web` (dev server).
+- [x] `docker compose up` menjalankan `app`, `worker` (queue), `db` (PostgreSQL 16), dan `web` (dev server). _(Diuji otomatis oleh job CI `compose`.)_
 - [x] `GET /api/v1/health` mengembalikan `{"status":"ok"}` dan status koneksi database.
 - [x] CI (GitHub Actions) menjalankan lint dan tes `api/` serta `web/` dengan layanan PostgreSQL.
 - [x] `docs/` berisi `tcb_schema.sql`, `tcb_openapi.yaml`, dan salinan SRS (Markdown).
