@@ -65,7 +65,7 @@ Docker belum terpasang di mesin pengembang. Perintah `docker compose ...` di ata
 # API: PostgreSQL 18 lokal, kredensial di api/.env (database tcb dan tcb_test, pemilik tcb_user)
 cd api
 php artisan migrate:fresh --seed
-php vendor/bin/pest            # jangan `php artisan test` bila pdo_pgsql belum aktif di php.ini
+php artisan test               # atau: php vendor/bin/pest (suite penuh ±45 detik)
 
 # Web: jalankan dari path berhuruf drive besar (D:\tcb\web), bukan d:\
 cd web
@@ -73,6 +73,9 @@ npm run test
 npm run lint
 ```
 
-- Jika `extension=pdo_pgsql` dan `extension=pgsql` belum aktif di `C:\php\php.ini`, tambahkan `-d extension=pdo_pgsql -d extension=pgsql` setelah `php`. `php artisan test` tidak bisa memakai flag ini karena menjalankan proses PHP baru (galat "could not find driver").
+- `extension=pdo_pgsql` dan `extension=pgsql` sudah aktif di `C:\php\php.ini`; jangan menambah flag `-d extension=...` (memicu peringatan "Module already loaded"). Bila suatu saat muncul "could not find driver", periksa `php -m | Select-String pgsql`.
+- Tulis atau ubah file PHP dengan tool penulis/penyunting file, bukan heredoc, `sed`, atau skrip shell. Git Bash di mesin ini merusak backslash di heredoc (namespace `App\Models` berubah), dan skrip pengganti yang gagal bisa mengosongkan file.
+- Jangan menyalurkan output Pest ke proses `php` lain lewat pipa (`pest | php -r ...`); di Windows bisa menggantung. Tulis output ke file dulu, lalu baca file itu.
+- Saat merge story ke `main`, jangan `git checkout main` lalu `git merge`: file yang hanya ada di branch sempat hilang dari disk dan VS Code memunculkan "Unable to resolve nonexistent file". Commit di branch story, lalu dari branch itu jalankan `git fetch . r1-xx-nama:main` (fast-forward `main` tanpa pindah branch; bila `main` sudah bergerak, `git rebase main` dulu), kemudian `git push origin main`.
 - Vitest gagal dengan "failed to find the current suite" bila dijalankan dari `d:\` (huruf kecil); jalankan dari `D:\` (PowerShell: `Set-Location D:\tcb\web`).
 - Folder tes kosong harus berisi `.gitkeep`; Git tidak menyimpan folder kosong dan PHPUnit gagal di CI bila folder di `phpunit.xml` tidak ada.
