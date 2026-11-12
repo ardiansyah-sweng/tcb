@@ -179,14 +179,16 @@ Catatan R1-08: atas persetujuan pengguna, kontrak berubah: `TaskCreate` menerima
 Bergantung pada: R1-06 · FR-05, FR-09
 
 Kriteria penerimaan:
-- [ ] Kelas `TaskStateMachine` **membaca** tabel `allowed_transitions` (di-cache per request); tidak ada daftar transisi yang disalin di kode.
-- [ ] `POST /tasks/{id}/transitions` dengan `{to, reason?, context?}`.
-- [ ] Transisi tidak sah → 409 `invalid_transition` dengan pesan dalam bahasa Indonesia, mis. "Task berstatus New tidak bisa langsung Running. Pindahkan ke Ready dulu."
-- [ ] New → Ready cukup dengan judul (SRS v1.1).
-- [ ] Waiting/Cancelled tanpa `reason` → 422 `reason_required`.
-- [ ] Running → Done ditolak (409) bila masih ada subtask yang belum Done atau Cancelled.
-- [ ] `GET /tasks/{id}/transitions` mengembalikan log, terbaru dulu, beserta sumbernya.
-- [ ] Galat database (`invalid_transition`, `wip_full`, `chk_*`) dipetakan ke respons API yang sama, sehingga aturan tetap aman walau validasi aplikasi terlewat.
+- [x] Kelas `TaskStateMachine` **membaca** tabel `allowed_transitions` (di-cache per request); tidak ada daftar transisi yang disalin di kode.
+- [x] `POST /tasks/{id}/transitions` dengan `{to, reason?, context?}`.
+- [x] Transisi tidak sah → 409 `invalid_transition` dengan pesan dalam bahasa Indonesia, mis. "Task berstatus New tidak bisa langsung Running. Pindahkan ke Ready dulu."
+- [x] New → Ready cukup dengan judul (SRS v1.1).
+- [x] Waiting/Cancelled tanpa `reason` → 422 `reason_required`.
+- [x] Running → Done ditolak (409) bila masih ada subtask yang belum Done atau Cancelled.
+- [x] `GET /tasks/{id}/transitions` mengembalikan log, terbaru dulu, beserta sumbernya.
+- [x] Galat database (`invalid_transition`, `wip_full`, `chk_*`) dipetakan ke respons API yang sama, sehingga aturan tetap aman walau validasi aplikasi terlewat.
+
+Catatan R1-09: kontrak dan skema tidak berubah. `TaskStateMachine` (`app/Services`) didaftarkan sebagai `scoped` di `AppServiceProvider`, jadi tabel dibaca paling banyak sekali per request/job; pesan penolakan menyarankan status antara bila ada jalur dua langkah ("Pindahkan ke Ready dulu"), selain itu menyebut status yang bisa dituju, dan `details` memuat `from`, `to`, `allowed`. Daftar status yang wajib beralasan (`waiting`, `cancelled`) ada di `TaskStateMachine::requiresReason()` sebagai cermin `chk_tasks_reason_required`, bukan daftar transisi. Respons 422 `reason_required` berisi `code`, `message`, dan `errors.reason`, sehingga cocok dengan `Error` maupun `ValidationErrorBody`. Penolakan Done karena subtask terbuka memakai kode `conflict` dengan `details.open_subtasks` (kunci task); subtask yang dihapus diabaikan. `TransitionService` versi awal: satu transaksi, `set_config('tcb.source', ?, true)`, kunci baris task, pemeriksaan ramah, lalu update status; galat database di dalamnya diterjemahkan oleh `DatabaseErrors::rejection()` menjadi `TransitionRejected` yang sama dengan pemeriksaan aplikasi, dan renderer global memakai `DatabaseErrors::response()` untuk galat yang muncul di luar endpoint. `wip_full` belum diperiksa di aplikasi (database yang menolak, dengan kunci baris pengguna); responsnya sudah berisi `wip_limit` dan `running`. `context` diterima sesuai kontrak tetapi belum disimpan (R1-10). Atas persetujuan pengguna, kontrak dan skema berubah: 404 `not_found` dicantumkan pada `GET/POST /tasks/{taskId}/transitions`; kolom baru `tasks.review_on` (date) dengan `chk_tasks_review_on_suspended` (hanya task Suspended yang boleh punya tanggal tinjau ulang; skema revisi 3, migrasi `2026_11_12_100500_add_review_on_to_tasks`), dan `Task.review_on` (readOnly) di kontrak. `review_on` hanya diterima bila `to: suspended` (selain itu 422), diisi oleh `TransitionService` saat masuk Suspended dan dikosongkan saat keluar; `PATCH /tasks` tidak menerimanya. Reason tanpa isi (spasi) dianggap kosong; reason pada status yang tidak mewajibkannya tetap disimpan.
 
 ### R1-10 · TransitionService: konteks, sesi kerja, akuntansi · L
 Bergantung pada: R1-09 · FR-07, FR-08, FR-10 · Spesifikasi: SRS bagian 12
@@ -346,7 +348,9 @@ Kriteria penerimaan:
 - `ObjectiveDetail.orphan_task_count` dan `time_allocation` (jam per KR 7 hari terakhir) belum diimplementasikan; tidak ada di kriteria R1 mana pun. Perlu diputuskan: `orphan_task_count` menghitung task orphan milik pengguna secara global (orphan tidak terikat Objective), dan `time_allocation` lebih cocok di tampilan progres goal (FR-19, Rilis 3).
 - Respons 404 kini seragam `{code: not_found, message: "<Model> tidak ditemukan."}` (renderer di `bootstrap/app.php`); tambahkan model baru ke peta label di sana.
 - `GlobalScope` pemilik hanya aktif saat ada pengguna login. Job antrean dan perintah konsol (mis. `CalendarSyncJob`, Rilis 2) harus menyaring `owner_id` sendiri.
-- R1-06: `start_ready` memindahkan task ke `ready` dengan update status langsung di `TaskController::moveToReady()` (diizinkan sementara oleh kriteria). Ganti dengan `TransitionService` di R1-10.
+- R1-06: `start_ready` memindahkan task ke `ready` dengan update status langsung di `TaskController::moveToReady()` (diizinkan sementara oleh kriteria). Sudah diganti dengan `TransitionService` di R1-09.
+- R1-09 (ide, belum dikerjakan): `review_on` belum dipakai di mana pun selain disimpan. Kandidat: tampilkan task Suspended yang tanggal tinjaunya sudah lewat di Beranda, atau ubah tanggalnya tanpa keluar dari Suspended.
+- R1-09: `set_config('tcb.source', ?, true)` berlaku sampai akhir transaksi terluar. Bila `TransitionService` dipanggil di dalam transaksi lain (mis. `POST /tasks` dengan `start_ready`, atau `/switch` di R1-11), setiap transisi tetap menyetel sumbernya sendiri, tetapi kode lain dalam transaksi yang sama ikut mewarisi sumber terakhir.
 - R1-06: `GET /tasks?sort=` baru menerima `updated` (bawaan). `score` (kontrak) menunggu R1-13; `deadline` (kontrak) belum masuk kriteria story mana pun. Keduanya kini 422 "Urutan yang tersedia saat ini hanya updated." Saat dibuat, urutkan `deadline` dengan `coalesce(deadline_at, 'infinity')` beralias agar cursor tidak rusak oleh NULL.
 - R1-06: ukuran halaman `GET /tasks` tetap 50 (`TaskController::PER_PAGE`); kontrak tidak punya parameter `limit`.
 - R1-06: cursor `GET /tasks` diurutkan pada alias `cursor_updated_at` (teks timestamptz mentah). Cast `datetime` Eloquent mengubah nilai cursor menjadi detik saja sehingga baris dalam detik yang sama terlewat; pola yang sama perlu dipakai untuk cursor pada kolom waktu lain. Catatan terkait: Eloquent menulis waktu tanpa microsecond (`UsesTimestampTz`), sedangkan `now()` PostgreSQL menyimpan microsecond.

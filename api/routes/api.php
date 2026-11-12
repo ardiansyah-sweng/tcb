@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\KeyResultController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\ObjectiveController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TransitionController;
 use Illuminate\Support\Facades\Route;
 
 // Prefix: /api/v1 (see bootstrap/app.php).
@@ -31,6 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // {task} accepts a numeric ID or a task_key (Task::resolveRouteBinding).
     Route::apiResource('tasks', TaskController::class);
+
+    // State changes go through TransitionService only (CLAUDE.md rule 1).
+    Route::get('/tasks/{task}/transitions', [TransitionController::class, 'index'])->name('tasks.transitions.index');
+    Route::post('/tasks/{task}/transitions', [TransitionController::class, 'store'])->name('tasks.transitions.store');
 
     // {dependency} is numeric; Dependency::resolveRouteBinding returns 404 otherwise.
     Route::apiResource('tasks.dependencies', DependencyController::class)

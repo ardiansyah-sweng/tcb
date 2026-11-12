@@ -9,6 +9,7 @@ use App\Http\Resources\TaskDetailResource;
 use App\Http\Resources\TaskResource;
 use App\Models\KeyResult;
 use App\Models\Task;
+use App\Services\TransitionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -77,13 +78,13 @@ class TaskController extends Controller
         ]);
     }
 
-    public function store(StoreTaskRequest $request): JsonResponse
+    public function store(StoreTaskRequest $request, TransitionService $transitions): JsonResponse
     {
-        $task = DB::transaction(function () use ($request) {
+        $task = DB::transaction(function () use ($request, $transitions) {
             $task = Task::create($request->taskAttributes());
 
             if ($request->boolean('start_ready')) {
-                $this->moveToReady($task);
+                $task = $transitions->transition($task, 'ready');
             }
 
             return $task;
@@ -110,16 +111,5 @@ class TaskController extends Controller
         $task->delete();
 
         return response()->noContent();
-    }
-
-    /**
-     * new -> ready for start_ready. Temporary direct update allowed by R1-06
-     * until TransitionService exists (R1-09/R1-10); replace it then. The
-     * database trigger still checks the transition and writes the log.
-     */
-    private function moveToReady(Task $task): void
-    {
-        DB::select("select set_config('tcb.source', ?, true)", ['user']);
-        DB::table('tasks')->where('id', $task->id)->update(['state' => 'ready']);
     }
 }

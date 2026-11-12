@@ -212,3 +212,30 @@ it('sets updated_at on every update', function () {
 
     expect($task->fresh()->updated_at->year)->toBeGreaterThan(2020);
 });
+
+// R1-09: review date for Suspended (tasks.review_on).
+describe('review_on', function () {
+    it('accepts a review date on a suspended task', function () {
+        $task = walkTo(makeTask(User::factory()->create()), 'ready', 'suspended');
+
+        DB::table('tasks')->where('id', $task->id)->update(['review_on' => '2026-12-01']);
+
+        expect(DB::table('tasks')->where('id', $task->id)->value('review_on'))->toBe('2026-12-01');
+    });
+
+    it('rejects a review date on a task that is not suspended', function () {
+        $task = walkTo(makeTask(User::factory()->create()), 'ready');
+
+        expectDbConstraint(
+            fn () => DB::table('tasks')->where('id', $task->id)->update(['review_on' => '2026-12-01']),
+            'chk_tasks_review_on_suspended',
+        );
+    });
+
+    it('rejects leaving suspended while the review date is still set', function () {
+        $task = walkTo(makeTask(User::factory()->create()), 'ready', 'suspended');
+        DB::table('tasks')->where('id', $task->id)->update(['review_on' => '2026-12-01']);
+
+        expectDbConstraint(fn () => setState($task, 'ready'), 'chk_tasks_review_on_suspended');
+    });
+});

@@ -384,6 +384,7 @@ paths:
                   data:
                     type: array
                     items: { $ref: '#/components/schemas/Transition' }
+        '404': { $ref: '#/components/responses/NotFound' }
     post:
       tags: [Transisi]
       summary: Ubah status task
@@ -427,6 +428,7 @@ paths:
                 oneOf:
                   - $ref: '#/components/schemas/Error'
                   - $ref: '#/components/schemas/WipFullError'
+        '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
   /switch:
@@ -1117,6 +1119,11 @@ components:
         state_reason: { type: [string, 'null'] }
         state_changed_at: { type: string, format: date-time }
         ready_since: { type: [string, 'null'], format: date-time }
+        review_on:
+          type: [string, 'null']
+          format: date
+          readOnly: true
+          description: Tanggal tinjau ulang task suspended; diisi lewat POST /tasks/{taskId}/transitions.
         priority: { type: integer, minimum: 1, maximum: 4 }
         deadline_at: { type: [string, 'null'], format: date-time }
         deadline_source: { type: string, enum: [manual, calendar_event] }
@@ -1179,7 +1186,12 @@ components:
           oneOf:
             - type: 'null'
             - $ref: '#/components/schemas/ContextInput'
-        review_on: { type: [string, 'null'], format: date, description: Tanggal tinjau ulang untuk suspended (opsional) }
+        review_on:
+          type: [string, 'null']
+          format: date
+          description: |
+            Tanggal tinjau ulang, hanya untuk `to: suspended` (opsional; selain itu 422).
+            Disimpan di `Task.review_on` dan dihapus saat task keluar dari suspended.
 
     SwitchRequest:
       type: object

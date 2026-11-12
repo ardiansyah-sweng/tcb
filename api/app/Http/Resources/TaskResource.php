@@ -34,6 +34,7 @@ class TaskResource extends JsonResource
             'state_reason' => $this->state_reason,
             'state_changed_at' => $this->state_changed_at,
             'ready_since' => $this->ready_since,
+            'review_on' => $this->review_on?->toDateString(),
             'priority' => $this->priority,
             'deadline_at' => $this->deadline_at,
             'deadline_source' => $this->deadline_source,

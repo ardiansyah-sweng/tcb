@@ -2,6 +2,8 @@
 -- TCB (Task Control Block) v1 — Skema database PostgreSQL
 -- Sumber: SRS TCB v1 (bagian 3, 4, 5, 7, 8, 12)
 -- Revisi 2 (12 Nov 2026): pembagian logika database vs aplikasi (SRS bagian 12).
+-- Revisi 3 (12 Nov 2026, R1-09): tasks.review_on (tanggal tinjau ulang Suspended)
+--   dan chk_tasks_review_on_suspended.
 --
 -- Prinsip: invariant yang harus selalu benar ada di database; alur kerja dan
 -- efek samping bisnis ada di aplikasi (service Laravel).
@@ -147,6 +149,7 @@ CREATE TABLE tasks (
   state_reason      text,
   state_changed_at  timestamptz NOT NULL DEFAULT now(),
   ready_since       timestamptz,                              -- dasar komponen aging
+  review_on         date,                                     -- tinjau ulang (hanya Suspended, opsional)
 
   -- penjadwalan (semua opsional, kecuali prioritas yang berdefault)
   priority          smallint    NOT NULL DEFAULT 2 CHECK (priority BETWEEN 1 AND 4),
@@ -179,6 +182,8 @@ CREATE TABLE tasks (
   -- alasan wajib untuk Waiting dan Cancelled (SRS bagian 4)
   CONSTRAINT chk_tasks_reason_required
     CHECK (state NOT IN ('waiting', 'cancelled') OR length(btrim(coalesce(state_reason, ''))) > 0),
+  -- tanggal tinjau ulang hanya untuk Suspended; TransitionService menghapusnya saat keluar
+  CONSTRAINT chk_tasks_review_on_suspended CHECK (review_on IS NULL OR state = 'suspended'),
   -- progres satuan: 'selesai' hanya bermakna jika 'total' ada, dan tidak melebihi total
   CONSTRAINT chk_tasks_unit_needs_total CHECK (unit_done IS NULL OR unit_total IS NOT NULL),
   CONSTRAINT chk_tasks_unit_le_total   CHECK (unit_done IS NULL OR unit_done <= unit_total)

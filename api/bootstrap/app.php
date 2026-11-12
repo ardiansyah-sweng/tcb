@@ -39,10 +39,11 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // Database rule violations (CLAUDE.md rule 3) become a ValidationErrorBody 422.
+        // Database rule violations (CLAUDE.md rule 3) get the same 409/422 as
+        // the application checks (invalid_transition, wip_full, chk_*).
         $exceptions->render(function (QueryException $e, Request $request) use ($wantsJson) {
-            if ($wantsJson($request) && ($body = DatabaseErrors::validationBody($e)) !== null) {
-                return response()->json($body, 422);
+            if ($wantsJson($request)) {
+                return DatabaseErrors::response($e, $request->user()?->id);
             }
         });
 

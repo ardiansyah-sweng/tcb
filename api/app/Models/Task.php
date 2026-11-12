@@ -32,6 +32,8 @@ class Task extends Model
 
     protected $guarded = [
         'id', 'task_key', 'state', 'state_reason', 'state_changed_at', 'ready_since',
+        // Tied to the Suspended state; set and cleared by TransitionService.
+        'review_on',
     ];
 
     protected function casts(): array
@@ -39,6 +41,7 @@ class Task extends Model
         return [
             'state_changed_at' => 'datetime',
             'ready_since' => 'datetime',
+            'review_on' => 'date',
             'priority' => 'integer',
             'deadline_at' => 'datetime',
             'estimate_minutes' => 'integer',
