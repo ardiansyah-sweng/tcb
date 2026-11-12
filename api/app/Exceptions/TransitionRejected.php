@@ -76,6 +76,18 @@ class TransitionRejected extends RuntimeException
         ]);
     }
 
+    /** 409 for POST /switch when the task to leave is no longer Running. */
+    public static function notRunning(Task $task): self
+    {
+        return new self(409, [
+            'code' => 'conflict',
+            'message' => "Task {$task->task_key} tidak sedang Running (status: "
+                .TaskStateMachine::label($task->state).'), jadi tidak bisa ditinggalkan untuk pindah. '
+                .'Mulai task tujuan lewat perubahan status biasa.',
+            'details' => ['task_key' => $task->task_key, 'from_state' => $task->state],
+        ]);
+    }
+
     /**
      * @param  Collection<int, Task>  $running
      */

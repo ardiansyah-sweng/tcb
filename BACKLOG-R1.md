@@ -209,11 +209,11 @@ Catatan R1-10: skema tidak berubah; kontrak hanya ditambah 404/422 pada endpoint
 Bergantung pada: R1-10 · FR-06
 
 Kriteria penerimaan:
-- [ ] `POST /switch` dengan `{from_task_id, from_to, context, to_task_id, reason?, recommendation_id?}` menjalankan dua transisi dalam satu transaksi.
-- [ ] Gagal di langkah mana pun → tidak ada yang berubah (tes dengan task tujuan yang tidak Ready).
-- [ ] Transisi ke Running saat WIP penuh → 409 `wip_full` berisi `wip_limit` dan daftar task yang sedang berjalan.
-- [ ] `recommendation_id` terisi → keputusan rekomendasi dicatat `picked`.
-- [ ] Tes konkurensi: dua permintaan Running bersamaan untuk task berbeda → tepat satu berhasil.
+- [x] `POST /switch` dengan `{from_task_id, from_to, context, to_task_id, reason?, recommendation_id?}` menjalankan dua transisi dalam satu transaksi.
+- [x] Gagal di langkah mana pun → tidak ada yang berubah (tes dengan task tujuan yang tidak Ready).
+- [x] Transisi ke Running saat WIP penuh → 409 `wip_full` berisi `wip_limit` dan daftar task yang sedang berjalan.
+- [x] `recommendation_id` terisi → keputusan rekomendasi dicatat `picked`.
+- [x] Tes konkurensi: dua permintaan Running bersamaan untuk task berbeda → tepat satu berhasil. _(`tests/Feature/Concurrency`: dua proses PHP terpisah, data di-commit, dibersihkan dengan `TRUNCATE users, personal_access_tokens CASCADE` hanya di `tcb_test`.)_
 
 ### R1-12 · DependencyService: pelepasan otomatis · S
 Bergantung pada: R1-07, R1-10 · Spesifikasi: SRS bagian 12
@@ -363,3 +363,5 @@ Kriteria penerimaan:
 - R1-10: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada ketiga endpoint `/tasks/{taskId}/contexts…` dan 422 pada `POST /tasks/{taskId}/contexts`.
 - R1-10 (ide, belum dikerjakan): `tasks.last_activity_at` belum diisi di mana pun. Kandidat: isi saat transisi dan saat menyimpan konteks, untuk deteksi `stale_running`.
 - R1-07: pemeriksaan siklus dependensi tidak memakai kunci; dua permintaan bersamaan (A→B dan B→A) secara teori bisa lolos. Risiko kecil untuk satu pengguna.
+- R1-11 (perlu keputusan): `SwitchRequest.from_to` di kontrak menerima `suspended`, tetapi `allowed_transitions` tidak punya `running → suspended`. Kini `/switch` dengan `from_to: suspended` selalu 409 `invalid_transition`. Pilih: tambah transisi itu ke skema, atau hapus `suspended` dari enum kontrak.
+- R1-11: `/switch` mengunci kedua baris task (urut ID) sebelum transisi agar dua pindah berlawanan arah tidak deadlock. Task asal yang ternyata tidak Running → 409 `conflict` (bukan `invalid_transition`, karena mis. `waiting → ready` sah dan akan diam-diam mengubah task yang salah). ID task atau rekomendasi yang tidak dikenal → 422 pada field-nya (kontrak `/switch` tidak punya 404).

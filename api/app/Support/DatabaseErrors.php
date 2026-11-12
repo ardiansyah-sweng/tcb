@@ -113,9 +113,11 @@ final class DatabaseErrors
     }
 
     /**
+     * The owner's running tasks, oldest first, as listed in a wip_full response.
+     *
      * @return Collection<int, Task>
      */
-    private static function runningTasks(?int $ownerId): Collection
+    public static function runningTasks(?int $ownerId): Collection
     {
         if ($ownerId === null) {
             return collect();
