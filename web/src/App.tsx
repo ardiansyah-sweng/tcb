@@ -1,8 +1,9 @@
 import { Route, Routes } from 'react-router'
 import { RequireAuth } from './auth/RequireAuth'
 import { Layout } from './components/Layout'
+import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
-import { BoardPage, GoalsPage, HomePage, NotFoundPage, TaskDetailPage } from './pages/placeholders'
+import { BoardPage, GoalsPage, NotFoundPage, TaskDetailPage } from './pages/placeholders'
 
 export default function App() {
   return (

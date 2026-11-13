@@ -27,6 +27,8 @@ class TaskResource extends JsonResource
             'title' => $this->title,
             'description' => $this->description,
             'key_result_id' => $this->key_result_id,
+            // Read-only, for display (R1-16). Lists eager load keyResult:id,title.
+            'key_result_title' => $this->key_result_id === null ? null : $this->keyResult?->title,
             'is_orphan' => $this->key_result_id === null,
             'parent_task_id' => $this->parent_task_id,
             'label' => $this->label,

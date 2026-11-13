@@ -55,6 +55,7 @@ class TaskController extends Controller
         // seconds-only value in the cursor and skip rows within the same second.
         $page = Task::query()
             ->select(['tasks.*', 'tasks.updated_at as cursor_updated_at'])
+            ->with('keyResult:id,title')
             ->when($filters['state'] ?? null, fn (Builder $q, string $s) => $q->whereIn('state', array_map('trim', explode(',', $s))))
             ->when($filters['key_result_id'] ?? null, fn (Builder $q, $id) => $q->where('key_result_id', $id))
             ->when($filters['objective_id'] ?? null, fn (Builder $q, $id) => $q->whereIn(

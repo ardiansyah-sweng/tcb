@@ -131,6 +131,7 @@ class RecommendationService
                 'dependencies as open_dependencies_count' => fn (Builder $q) => $q->where('status', 'open'),
                 'subtasks as open_subtasks_count' => fn (Builder $q) => $q->whereNotIn('state', ['done', 'cancelled']),
             ])
+            ->with('keyResult:id,title') // Task.key_result_title in the response
             ->get()
             ->keyBy('id');
     }

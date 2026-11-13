@@ -1115,13 +1115,17 @@ components:
 
     Task:
       type: object
-      required: [id, task_key, title, state, priority, energy, is_orphan, unit_name_suggestion, time_spent_minutes, switch_count, created_at, updated_at]
+      required: [id, task_key, title, key_result_title, state, priority, energy, is_orphan, unit_name_suggestion, time_spent_minutes, switch_count, created_at, updated_at]
       properties:
         id: { type: integer }
         task_key: { type: string, example: TCB-31 }
         title: { type: string }
         description: { type: [string, 'null'] }
         key_result_id: { type: [integer, 'null'] }
+        key_result_title:
+          type: [string, 'null']
+          readOnly: true
+          description: Judul Key Result tertaut, untuk tampilan; null bila orphan.
         is_orphan: { type: boolean }
         parent_task_id: { type: [integer, 'null'] }
         label: { type: [string, 'null'] }

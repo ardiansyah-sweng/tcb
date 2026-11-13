@@ -753,6 +753,8 @@ export interface components {
             title: string;
             description?: string | null;
             key_result_id?: number | null;
+            /** @description Judul Key Result tertaut, untuk tampilan; null bila orphan. */
+            readonly key_result_title: string | null;
             is_orphan: boolean;
             parent_task_id?: number | null;
             label?: string | null;

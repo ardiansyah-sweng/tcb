@@ -1,17 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
 import { useId } from 'react'
-import { api, request } from '../api/client'
 import { errorMessage } from '../api/errors'
-import { runningTasksQueryKey } from '../api/queryKeys'
+import { useRunningTasks } from '../api/tasks'
 import { useMe } from '../auth/session'
 
 export function WipIndicator() {
   const labelId = useId()
   const me = useMe()
-  const running = useQuery({
-    queryKey: runningTasksQueryKey,
-    queryFn: () => request(api.GET('/tasks', { params: { query: { state: 'running' } } })),
-  })
+  const running = useRunningTasks()
 
   const error = me.error ?? running.error
   const count = running.data?.data?.length
