@@ -235,17 +235,19 @@ Bergantung pada: R1-07 · FR-12 · Spesifikasi: SRS bagian 6
 Kelas murni (tanpa I/O) agar mudah diuji dan diganti (NFR-10).
 
 Kriteria penerimaan:
-- [ ] Kelayakan: status Ready, tidak dihapus, tanpa dependensi terbuka, bukan induk yang masih punya subtask terbuka.
-- [ ] Komponen (semua 0–1):
+- [x] Kelayakan: status Ready, tidak dihapus, tanpa dependensi terbuka, bukan induk yang masih punya subtask terbuka.
+- [x] Komponen (semua 0–1):
   - G = bobot KR × (1 − progres KR); orphan = 0.
   - U = 1 jika lewat deadline; 0 jika tanpa deadline; selain itu max(0, 1 − slack/14), dengan slack = sisa hari kerja − (estimasi menit ÷ menit kerja per hari). Estimasi kosong = 60 menit.
   - P = (priority − 1) / 3.
   - A = min(1, hari sejak `ready_since` / 14).
   - F tidak dipakai di Rilis 1; bobot G, U, P, A dinormalisasi ulang agar berjumlah 1.
-- [ ] Skor = Σ bobot × komponen, dibulatkan 4 desimal.
-- [ ] Alasan = dua kontribusi terbesar dalam kalimat, contoh: "Key Result bobot tinggi, progres masih 30%", "Deadline Sabtu, 14 Nov", "Sudah 9 hari di Ready", "Prioritas tinggi".
-- [ ] Task lebih dari 14 hari di Ready ditandai `stale` untuk pengingat "kerjakan, tunda, atau batalkan".
-- [ ] Tes unit dengan jam tetap (clock injection) untuk setiap komponen dan untuk urutan tiga task contoh.
+- [x] Skor = Σ bobot × komponen, dibulatkan 4 desimal.
+- [x] Alasan = dua kontribusi terbesar dalam kalimat, contoh: "Key Result bobot tinggi, progres masih 30%", "Deadline Sabtu, 14 Nov", "Sudah 9 hari di Ready", "Prioritas tinggi".
+- [x] Task lebih dari 14 hari di Ready ditandai `stale` untuk pengingat "kerjakan, tunda, atau batalkan".
+- [x] Tes unit dengan jam tetap (clock injection) untuk setiap komponen dan untuk urutan tiga task contoh. _(`tests/Unit/Recommendation`, 50 tes, tanpa database.)_
+
+Catatan R1-13: kontrak dan skema tidak berubah; belum ada endpoint (R1-14). Kelas ada di `app/Services/Recommendation`: `RecommendationScorer` (jam lewat `Psr\Clock\ClockInterface` di konstruktor), masukan `ScoringCandidate` (data task yang sudah dimuat, termasuk jumlah dependensi `open` dan subtask terbuka, bobot dan progres KR) dan `ScoringProfile` (`score_weights`, `work_hours`, `timezone` pengguna), keluaran `ScoredTask` (`score`, `breakdown`, `reasons`, `stale`). `rank()` menyaring kelayakan, mengurutkan skor tertinggi dulu; skor sama → lebih lama di Ready dulu, lalu ID terkecil. Tafsiran yang dipakai: "sisa hari kerja" = menit kerja dari sekarang sampai deadline menurut `work_hours` di zona waktu pengguna ÷ rata-rata menit kerja per hari (Senin–Jumat 08:00–17:00 → 540), jadi pecahan hari ikut dihitung dan akhir pekan dilewati; slack negatif (estimasi tak muat) → U = 1. `work_hours` kosong atau tak sah memakai default skema; bobot negatif/hilang memakai 0/default, dan bila keempatnya 0 dipakai bobot default. G tidak dinormalisasi lagi karena bobot KR sudah 0–1 (CHECK skema). `breakdown` berisi nilai komponen mentah (0–1, 4 desimal) tanpa kunci `fit`; alasan diurutkan menurut kontribusi (bobot × komponen), komponen yang bernilai 0 tidak memberi alasan, sehingga alasan bisa kurang dari dua (mis. prioritas rendah tanpa deadline dan baru masuk Ready → kosong). Kalimat: G "Key Result bobot tinggi/sedang/rendah (≥0,7/≥0,4/lainnya), progres masih N%" (dibulatkan ke bawah); U "Deadline Sabtu, 14 Nov" atau "Lewat deadline Kamis, 12 Nov", tahun ditambahkan bila berbeda dari tahun ini; P "Prioritas sedang/tinggi/kritis"; A "Sudah N hari di Ready" atau "Masuk Ready hari ini". `stale` = lebih dari 14 × 24 jam di Ready (tepat 14 hari belum).
 
 ### R1-14 · Endpoint rekomendasi dan keputusan · S
 Bergantung pada: R1-13, R1-11 · FR-12, FR-13
@@ -369,3 +371,6 @@ Kriteria penerimaan:
 - R1-12 (ide, belum dikerjakan): SRS 12 langkah 3 ("pemberitahuan ringan di Beranda bahwa task siap dikerjakan") belum ada; datanya bisa diambil dari log transisi `waiting → ready` bersumber `system`. Cocok dikerjakan di R1-16 (Beranda).
 - R1-12 (perlu keputusan): dependensi pada task yang menjadi Cancelled tetap `open`, jadi task penunggunya tetap Waiting. Begitu juga `DELETE /dependencies/{id}` tidak memicu pelepasan (tes R1-07 meminta kedua task tidak berubah). Keduanya bisa memakai `DependencyService` bila diinginkan.
 - R1-12: `DependencyService` me-resolve `TransitionService` lewat `app()` karena keduanya saling bergantung (Done memicu pelepasan, pelepasan memakai transisi).
+- R1-13 (perlu keputusan, untuk R1-14): skema `Recommendation` di kontrak belum punya field `stale`, dan tabel `recommendations` tidak menyimpannya. Pilih: tambah `stale` (boolean, dihitung saat batch dibuat) ke kontrak, atau tampilkan pengingat lewat alasan saja. Perubahan kontrak perlu persetujuan.
+- R1-13: kelayakan memakai jumlah dependensi berstatus `open`. Karena dependensi ke task Cancelled tetap `open` (catatan R1-12), task penunggunya tidak akan pernah direkomendasikan sampai keputusan itu diambil.
+- R1-13: `GET /tasks?sort=score` (kontrak: "menurut skor rekomendasi terbaru") masih 422; bisa dibuat setelah R1-14 menyimpan batch.
