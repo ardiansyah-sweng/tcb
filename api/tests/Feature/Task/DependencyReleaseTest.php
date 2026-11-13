@@ -90,11 +90,46 @@ it('resolves nothing when the done transition is refused', function () {
         ->and($waiting->fresh()->state)->toBe('waiting');
 });
 
-it('does not resolve dependencies when the task is cancelled', function () {
+/*
+| Decision 13 Nov 2026 (from the R1-12 note): a task that becomes Cancelled
+| releases its waiting tasks like Done and soft delete, so they are not
+| stuck in Waiting forever.
+*/
+
+it('resolves the dependencies waiting for a task that is cancelled and releases the waiting task', function () {
+    $paper = walkTo(makeTask($this->user), 'ready');
+    $waiting = waitingTask($this->user, ['title' => 'Kirim revisi']);
+    $dependency = waitFor($waiting, $paper);
+
+    $this->postJson("/api/v1/tasks/{$paper->id}/transitions", ['to' => 'cancelled', 'reason' => 'Tidak jadi'])->assertOk();
+
+    $dependency->refresh();
+    $waiting->refresh();
+    $log = lastTransition($waiting);
+    expect($dependency->status)->toBe('resolved')
+        ->and($dependency->resolved_at)->not->toBeNull()
+        ->and($waiting->state)->toBe('ready')
+        ->and([$log->from_state, $log->to_state, $log->source])->toBe(['waiting', 'ready', 'system'])
+        ->and(lastTransition($paper)->source)->toBe('user');
+});
+
+it('keeps a waiting task waiting when the cancelled task was not its only dependency', function () {
+    $paper = walkTo(makeTask($this->user), 'ready');
+    $waiting = waitingTask($this->user);
+    waitFor($waiting, $paper);
+    waitForExternal($waiting);
+
+    $this->postJson("/api/v1/tasks/{$paper->id}/transitions", ['to' => 'cancelled', 'reason' => 'Tidak jadi'])->assertOk();
+
+    expect($waiting->fresh()->state)->toBe('waiting');
+});
+
+it('resolves nothing when the cancel transition is refused', function () {
     $paper = walkTo(makeTask($this->user), 'ready');
     $dependency = waitFor(waitingTask($this->user), $paper);
 
-    $this->postJson("/api/v1/tasks/{$paper->id}/transitions", ['to' => 'cancelled', 'reason' => 'Tidak jadi'])->assertOk();
+    // Cancelled needs a reason (422 reason_required).
+    $this->postJson("/api/v1/tasks/{$paper->id}/transitions", ['to' => 'cancelled'])->assertUnprocessable();
 
     expect($dependency->fresh()->status)->toBe('open');
 });

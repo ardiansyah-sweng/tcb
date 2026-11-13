@@ -8,8 +8,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Releases waiting tasks (FR-11, SRS section 12): the only automatic state
- * change without confirmation. Runs when a task becomes Done (called by
- * TransitionService in the same transaction), when an external blocker is
+ * change without confirmation. Runs when a task becomes Done or Cancelled
+ * (called by TransitionService in the same transaction; Cancelled since the
+ * decision of 13 Nov 2026), when an external blocker is
  * marked resolved, and when a task is deleted (decision 12 Nov 2026, so a
  * task waiting for a deleted one is not stuck forever).
  *
@@ -21,7 +22,7 @@ class DependencyService
     /**
      * Resolve the open dependencies waiting for $task, then move each waiting
      * task without open dependencies to Ready. Call inside the transaction
-     * that finishes or deletes $task.
+     * that finishes, cancels or deletes $task.
      */
     public function resolveWaitingOn(Task $task): void
     {

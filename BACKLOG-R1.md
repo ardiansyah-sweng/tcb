@@ -225,6 +225,7 @@ Kriteria penerimaan:
 - [x] Menandai hambatan eksternal `resolved` juga memicu pemeriksaan yang sama.
 - [x] Task Waiting yang masih punya dependensi terbuka lain tetap Waiting.
 - [x] _(Keputusan pengguna 12 Nov 2026, dari catatan R1-07.)_ Menghapus task (soft delete) juga melepaskan dependensi yang menunggunya, dengan pemeriksaan yang sama.
+- [x] _(Keputusan pengguna 13 Nov 2026, dari catatan R1-12.)_ Task yang menjadi Cancelled juga melepaskan dependensi yang menunggunya, dalam transaksi transisi yang sama, dengan pemeriksaan yang sama. `DELETE /dependencies/{id}` tetap tidak memicu pelepasan.
 
 ---
 
@@ -374,9 +375,9 @@ Kriteria penerimaan:
 - R1-11 → diputuskan 13 Nov 2026: `suspended` dihapus dari `SwitchRequest.from_to` (kontrak dan kode); `/switch` dengan `from_to: suspended` kini 422. Kriteria R1-17 ikut disesuaikan.
 - R1-11: `/switch` mengunci kedua baris task (urut ID) sebelum transisi agar dua pindah berlawanan arah tidak deadlock. Task asal yang ternyata tidak Running → 409 `conflict` (bukan `invalid_transition`, karena mis. `waiting → ready` sah dan akan diam-diam mengubah task yang salah). ID task atau rekomendasi yang tidak dikenal → 422 pada field-nya (kontrak `/switch` tidak punya 404).
 - R1-12 (ide, belum dikerjakan): SRS 12 langkah 3 ("pemberitahuan ringan di Beranda bahwa task siap dikerjakan") belum ada; datanya bisa diambil dari log transisi `waiting → ready` bersumber `system`. Cocok dikerjakan di R1-16 (Beranda).
-- R1-12 (perlu keputusan): dependensi pada task yang menjadi Cancelled tetap `open`, jadi task penunggunya tetap Waiting. Begitu juga `DELETE /dependencies/{id}` tidak memicu pelepasan (tes R1-07 meminta kedua task tidak berubah). Keduanya bisa memakai `DependencyService` bila diinginkan.
+- R1-12 → diputuskan 13 Nov 2026: task Cancelled kini melepaskan dependensi yang menunggunya (seperti Done dan soft delete). Data lama yang Cancelled sebelum keputusan ini tidak diperbaiki otomatis. `DELETE /dependencies/{id}` tetap tidak memicu pelepasan (tes R1-07 meminta kedua task tidak berubah); bila task penunggunya Waiting tanpa dependensi lain, pengguna memindahkannya sendiri.
 - R1-12: `DependencyService` me-resolve `TransitionService` lewat `app()` karena keduanya saling bergantung (Done memicu pelepasan, pelepasan memakai transisi).
 - R1-13 → R1-14 (diputuskan 13 Nov 2026): `stale` ditambahkan ke skema `Recommendation` di kontrak, dikerjakan di R1-14 (lihat kriteria terakhirnya).
 - R1-13 → R1-14 (diputuskan 13 Nov 2026): task stale yang tidak masuk tiga besar dikirim lewat `RecommendationBatch.stale_tasks` (lihat kriteria R1-14), agar pengingatnya tetap tampil walau skornya rendah.
-- R1-13: kelayakan memakai jumlah dependensi berstatus `open`. Karena dependensi ke task Cancelled tetap `open` (catatan R1-12), task penunggunya tidak akan pernah direkomendasikan sampai keputusan itu diambil.
+- R1-13: kelayakan memakai jumlah dependensi berstatus `open`. Sejak keputusan R1-12 (13 Nov 2026), dependensi ke task Cancelled ikut resolved, jadi task penunggunya bisa direkomendasikan lagi.
 - R1-13: `GET /tasks?sort=score` (kontrak: "menurut skor rekomendasi terbaru") masih 422; bisa dibuat setelah R1-14 menyimpan batch.

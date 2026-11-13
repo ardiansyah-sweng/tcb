@@ -20,7 +20,7 @@ use InvalidArgumentException;
  *    task, close the work session, add the time, count a switch unless the
  *    task is finished;
  * 4. change the state; entering Running opens a new work session.
- * 5. becoming Done: DependencyService releases the tasks waiting for it.
+ * 5. becoming Done or Cancelled: DependencyService releases the tasks waiting for it.
  * Any failure rolls back every step.
  */
 class TransitionService
@@ -95,7 +95,8 @@ class TransitionService
 
                 // Step 6: release the tasks waiting for this one, same transaction.
                 // Their transitions set tcb.source to their own source (system).
-                if ($to === 'done') {
+                // Cancelled too (decision 13 Nov 2026), so waiting tasks are not stuck.
+                if ($to === 'done' || $to === 'cancelled') {
                     $this->dependencies->resolveWaitingOn($locked);
                 }
 

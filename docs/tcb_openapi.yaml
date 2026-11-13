@@ -560,7 +560,7 @@ paths:
     patch:
       tags: [Dependensi]
       summary: Tandai hambatan eksternal teratasi
-      description: Hanya untuk hambatan eksternal. Dependensi ke task lain terlepas otomatis saat task itu Done, jadi ditolak (422). Permintaan berulang tidak mengubah `resolved_at`.
+      description: Hanya untuk hambatan eksternal. Dependensi ke task lain terlepas otomatis saat task itu Done, Cancelled, atau dihapus, jadi ditolak (422). Permintaan berulang tidak mengubah `resolved_at`.
       operationId: resolveDependency
       requestBody:
         required: true
