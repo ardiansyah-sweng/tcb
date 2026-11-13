@@ -102,7 +102,9 @@ function RecommendationCard({ item, runningFull }: { item: Recommendation; runni
         <button
           type="button"
           disabled={busy}
-          onClick={() => start.mutate({ task: item.task, recommendationId: item.id, runningFull })}
+          onClick={() =>
+            start.mutate({ task: item.task, recommendationId: item.id, runningFull, origin: { rank: item.rank, score: item.score } })
+          }
           className={
             item.rank === 1
               ? 'rounded-lg bg-blue-700 px-4 py-2 font-medium text-white hover:bg-blue-800 disabled:opacity-60'

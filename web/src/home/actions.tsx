@@ -12,7 +12,14 @@ import { useRefreshAfterChange, type Task } from '../api/tasks'
 export type DialogRequest =
   | { mode: 'pause' | 'block'; task: Task }
   /** `leaving`: the running tasks to choose from; defaults to GET /tasks?state=running. */
-  | { mode: 'switch'; target: Task; recommendationId: number | null; leaving?: Task[] }
+  | {
+      mode: 'switch'
+      target: Task
+      recommendationId: number | null
+      /** Shown on the "Dimulai" card when the task comes from a recommendation. */
+      origin?: { rank: number; score: number }
+      leaving?: Task[]
+    }
 
 type HomeActions = { openDialog: (request: DialogRequest) => void }
 
@@ -30,7 +37,7 @@ function runningFromWipFull(body: unknown): Task[] | undefined {
   return Array.isArray(running) && running.length > 0 ? (running as Task[]) : undefined
 }
 
-type StartInput = { task: Task; recommendationId: number | null; runningFull: boolean }
+type StartInput = { task: Task; recommendationId: number | null; runningFull: boolean; origin?: { rank: number; score: number } }
 
 /**
  * Starts a task. With Running full it opens the switch form instead (POST
@@ -43,16 +50,16 @@ export function useStartTask() {
   const refresh = useRefreshAfterChange()
 
   return useMutation({
-    mutationFn: async ({ task, recommendationId, runningFull }: StartInput) => {
+    mutationFn: async ({ task, recommendationId, runningFull, origin }: StartInput) => {
       if (runningFull) {
-        openDialog({ mode: 'switch', target: task, recommendationId })
+        openDialog({ mode: 'switch', target: task, recommendationId, origin })
         return
       }
       try {
         await request(api.POST('/tasks/{taskId}/transitions', { params: { path: { taskId: String(task.id) } }, body: { to: 'running' } }))
       } catch (error) {
         if (error instanceof ApiError && error.code === 'wip_full') {
-          openDialog({ mode: 'switch', target: task, recommendationId, leaving: runningFromWipFull(error.body) })
+          openDialog({ mode: 'switch', target: task, recommendationId, origin, leaving: runningFromWipFull(error.body) })
           return
         }
         throw error

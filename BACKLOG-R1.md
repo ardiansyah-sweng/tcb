@@ -300,12 +300,14 @@ Catatan R1-16: atas persetujuan pengguna (13 Nov 2026), kontrak `Task` mendapat 
 Bergantung pada: R1-11, R1-16 · FR-06, FR-07, FR-23
 
 Kriteria penerimaan:
-- [ ] Menampilkan task yang ditinggalkan dan task yang dimulai.
-- [ ] Form diisi awal dari `/contexts/draft`; pengguna cukup mengoreksi.
-- [ ] Baris progres satuan (− angka +, "dari N satuan") hanya muncul bila task punya `unit_total`.
-- [ ] Pilihan tujuan task lama: Ready (default), Waiting (alasan wajib). _(Suspended dihapus 13 Nov 2026 mengikuti keputusan R1-11; menunda task dilakukan lewat Ready lalu Suspended.)_
-- [ ] "Simpan & pindah" memanggil `POST /switch`; galat ditampilkan tanpa menutup dialog dan tanpa kehilangan isian.
-- [ ] Bisa diselesaikan dengan keyboard saja (Tab, Enter, Esc).
+- [x] Menampilkan task yang ditinggalkan dan task yang dimulai.
+- [x] Form diisi awal dari `/contexts/draft`; pengguna cukup mengoreksi.
+- [x] Baris progres satuan (− angka +, "dari N satuan") hanya muncul bila task punya `unit_total`.
+- [x] Pilihan tujuan task lama: Ready (default), Waiting (alasan wajib). _(Suspended dihapus 13 Nov 2026 mengikuti keputusan R1-11; menunda task dilakukan lewat Ready lalu Suspended.)_
+- [x] "Simpan & pindah" memanggil `POST /switch`; galat ditampilkan tanpa menutup dialog dan tanpa kehilangan isian.
+- [x] Bisa diselesaikan dengan keyboard saja (Tab, Enter, Esc).
+
+Catatan R1-17: kontrak dan skema tidak berubah. Dialog ini adalah form konteks R1-16 (`web/src/home/ContextDialog.tsx`) yang diperluas; tes di `home/ContextDialog.test.tsx` (19 tes), fixture Beranda dipindah ke `src/test/home.ts`. Isi varian pindah mengikuti mockup `03-pindah task`: kalimat "Running sudah penuh (n/WIP limit). TCB-x dipindah dengan konteks di bawah, lalu TCB-y mulai berjalan.", kartu Ditinggalkan (kunci, judul, "N mnt sesi ini · pindah ke-(switch_count + 1)") dan Dimulai (kunci, judul, "Rekomendasi #r · skor s" bila dari rekomendasi; tidak ada bila dari "Sudah lama menunggu"). Tafsiran yang dipakai: (1) Waiting memakai isian Blocker sebagai alasan (label "Waiting (isi blocker)" di mockup), jadi `reason` = `context.blocker`, sama dengan Terblokir R1-16; tanpa blocker → "Isi blocker sebagai alasan menunggu." dan tidak ada request. `reason` hanya dikirim untuk Waiting. (2) Baris progres satuan ikut tampil di Jeda dan Terblokir karena kriteria R1-16 meminta form yang sama. Nilai awalnya `draft.unit_done`; tombol − dan + mengubah 1 dan berhenti di 0 dan `unit_total`; angka ketikan di luar 0–total ditolak di form; kolom dikosongkan → nilai sekarang dikirim lagi (bukan null, karena null akan menghapus `unit_done` task). Task tanpa `unit_total` mengirim `unit_done` dari draft (null). Keyboard: fokus awal di "Sampai mana?", Tab dan Shift+Tab berputar di dalam dialog, Enter di kolom satu baris atau tombol menyimpan, panah memilih Ready/Waiting, Esc menutup tanpa menyimpan, lalu fokus kembali ke tombol pembuka. Enter di "Sampai mana?" tetap membuat baris baru. Belum dicoba di browser sungguhan terhadap API lokal.
 
 ### R1-18 · Papan status · M
 Bergantung pada: R1-15 · FR-18
