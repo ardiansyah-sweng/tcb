@@ -10,7 +10,8 @@ import { useRefreshAfterChange, type Task } from '../api/tasks'
  */
 
 export type DialogRequest =
-  | { mode: 'pause' | 'block'; task: Task }
+  /** `suspend`: running → suspended, from the Papan status (R1-18). */
+  | { mode: 'pause' | 'block' | 'suspend'; task: Task }
   /** `leaving`: the running tasks to choose from; defaults to GET /tasks?state=running. */
   | {
       mode: 'switch'
@@ -31,7 +32,8 @@ export function useHomeActions(): HomeActions {
   return actions
 }
 
-function runningFromWipFull(body: unknown): Task[] | undefined {
+/** The running tasks sent with a 409 wip_full, if any. */
+export function runningFromWipFull(body: unknown): Task[] | undefined {
   if (typeof body !== 'object' || body === null || !('running' in body)) return undefined
   const running = (body as { running: unknown }).running
   return Array.isArray(running) && running.length > 0 ? (running as Task[]) : undefined

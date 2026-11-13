@@ -86,6 +86,24 @@ class RecommendationService
     }
 
     /**
+     * The current score of every eligible Ready task of $user, best first,
+     * in the same order and with the same scores as generate() (R1-18,
+     * GET /tasks?sort=score). Nothing is stored and tasks skipped today are
+     * kept: this is the board order, not a recommendation batch.
+     *
+     * @return list<ScoredTask>
+     */
+    public function currentRanking(User $user): array
+    {
+        $user = User::query()->findOrFail($user->id, ['id', 'timezone', 'wip_limit', 'score_weights', 'work_hours']);
+
+        return $this->scorer->rank(
+            $this->readyTasks($user)->map(fn (Task $task) => $this->candidate($task)),
+            $this->profile($user),
+        );
+    }
+
+    /**
      * Eligible stale tasks left out of the batch, so the "kerjakan, tunda,
      * atau batalkan" reminder shows even when their score is low. Longest
      * waiting first (ready_since, then id), at most STALE_TASKS_LIMIT.

@@ -11,7 +11,8 @@ import { useNow } from './useNow'
 
 /**
  * Context form (R1-16, R1-17) used by Jeda (running → ready), Terblokir
- * (running → waiting) and pindah task (POST /switch). Filled from GET
+ * (running → waiting), Tunda from the Papan status (running → suspended,
+ * R1-18) and pindah task (POST /switch). Filled from GET
  * /contexts/draft so the user only corrects it. The switch variant shows the
  * task left and the task started and lets the task left go to Ready (default)
  * or Waiting (the blocker is the reason). Keyboard: focus starts in
@@ -87,6 +88,9 @@ export function ContextDialog({ request: req, onClose }: { request: DialogReques
   } else if (req.mode === 'block') {
     title = `Terblokir ${req.task.task_key}`
     description = `${req.task.task_key} pindah ke Waiting sampai hambatannya teratasi.`
+  } else if (req.mode === 'suspend') {
+    title = `Tunda ${req.task.task_key}`
+    description = `${req.task.task_key} pindah ke Suspended dengan konteks di bawah.`
   } else {
     title = `Jeda ${req.task.task_key}`
     description = `${req.task.task_key} kembali ke Ready dengan konteks di bawah.`
@@ -265,7 +269,8 @@ function ContextFields({
           }),
         )
       } else {
-        await request(api.POST('/tasks/{taskId}/transitions', { params: { path: { taskId } }, body: { to: 'ready', context } }))
+        const to = req.mode === 'suspend' ? 'suspended' : 'ready'
+        await request(api.POST('/tasks/{taskId}/transitions', { params: { path: { taskId } }, body: { to, context } }))
       }
     },
     onMutate: () => onPendingChange(true),
@@ -316,7 +321,10 @@ function ContextFields({
       </>
     )
 
-  const submitLabel = req.mode === 'switch' ? 'Simpan & pindah' : block ? 'Simpan & tandai menunggu' : 'Simpan & jeda'
+  let submitLabel = 'Simpan & jeda'
+  if (req.mode === 'switch') submitLabel = 'Simpan & pindah'
+  else if (block) submitLabel = 'Simpan & tandai menunggu'
+  else if (req.mode === 'suspend') submitLabel = 'Simpan & tunda'
   const stepButton = 'h-10 w-10 shrink-0 rounded-md border border-slate-300 text-lg text-slate-800 hover:bg-slate-100 disabled:opacity-40'
 
   return (

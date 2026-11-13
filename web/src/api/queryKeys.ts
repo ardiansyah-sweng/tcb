@@ -9,6 +9,8 @@ export const meQueryKey = ['me'] as const
 export const runningTasksQueryKey = ['tasks', { state: 'running' }] as const
 export const waitingTasksQueryKey = ['tasks', { state: 'waiting' }] as const
 export const taskDetailQueryKey = (taskId: number) => ['tasks', 'detail', taskId] as const
+/** One Papan status column (R1-18): one state with the board filters. */
+export const boardColumnQueryKey = (state: string, filters: Record<string, string>) => ['tasks', 'board', state, filters] as const
 export const contextDraftQueryKey = (taskId: number) => ['tasks', 'draft', taskId] as const
 
 /** Every GET /recommendations stores a new batch, so it is fetched only on purpose. */

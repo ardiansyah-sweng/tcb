@@ -16,5 +16,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Whole-app render tests run in parallel files; under load the first test
+    // of a file can pass 5 s (seen with ContextDialog after R1-18 added the board tests).
+    testTimeout: 15_000,
   },
 })

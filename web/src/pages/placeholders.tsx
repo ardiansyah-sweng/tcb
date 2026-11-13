@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import { useParams } from 'react-router'
 
 /**
- * Screens filled in by later stories (Papan status R1-18,
- * Detail task R1-19, Goal & Key Result R1-20). R1-15 only provides the frame.
+ * Screens filled in by later stories (Detail task R1-19,
+ * Goal & Key Result R1-20). R1-15 only provides the frame.
  */
 
 function Page({ title, children }: { title: string; children?: ReactNode }) {
@@ -13,10 +13,6 @@ function Page({ title, children }: { title: string; children?: ReactNode }) {
       <div className="mt-4 text-slate-600">{children ?? <p>Halaman ini sedang disiapkan.</p>}</div>
     </section>
   )
-}
-
-export function BoardPage() {
-  return <Page title="Papan status" />
 }
 
 export function GoalsPage() {

@@ -333,7 +333,7 @@ it('rejects an unavailable sort order', function (string $sort) {
     $this->getJson("/api/v1/tasks?sort={$sort}")
         ->assertUnprocessable()
         ->assertJsonValidationErrors(['sort']);
-})->with(['score', 'deadline', 'acak']);
+})->with(['deadline', 'acak']);
 
 it('accepts sort=updated', function () {
     makeTask($this->user);

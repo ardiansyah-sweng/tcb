@@ -33,6 +33,11 @@ class TaskResource extends JsonResource
             'parent_task_id' => $this->parent_task_id,
             'label' => $this->label,
             'state' => $this->state,
+            // Current recommendation score, only on GET /tasks?sort=score for an
+            // eligible Ready task (R1-18); never stored on the task.
+            'score' => isset($this->resource->getAttributes()['current_score'])
+                ? (float) $this->resource->getAttributes()['current_score']
+                : null,
             'state_reason' => $this->state_reason,
             'state_changed_at' => $this->state_changed_at,
             'ready_since' => $this->ready_since,

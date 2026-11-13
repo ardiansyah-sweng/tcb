@@ -252,7 +252,10 @@ paths:
     get:
       tags: [Task]
       summary: Daftar task (papan status)
-      description: Task Ready diurutkan menurut skor rekomendasi terbaru bila `sort=score`.
+      description: |
+        Task Ready diurutkan menurut skor rekomendasi terbaru bila `sort=score`: skor dihitung
+        saat diminta untuk semua task Ready yang layak (sama dengan `GET /recommendations`),
+        tanpa menyimpan batch. Task Ready yang tidak layak dan status lain menyusul, urut `updated`.
       operationId: listTasks
       parameters:
         - name: state
@@ -1115,7 +1118,7 @@ components:
 
     Task:
       type: object
-      required: [id, task_key, title, key_result_title, state, priority, energy, is_orphan, unit_name_suggestion, time_spent_minutes, switch_count, created_at, updated_at]
+      required: [id, task_key, title, key_result_title, score, state, priority, energy, is_orphan, unit_name_suggestion, time_spent_minutes, switch_count, created_at, updated_at]
       properties:
         id: { type: integer }
         task_key: { type: string, example: TCB-31 }
@@ -1130,6 +1133,12 @@ components:
         parent_task_id: { type: [integer, 'null'] }
         label: { type: [string, 'null'] }
         state: { $ref: '#/components/schemas/State' }
+        score:
+          type: [number, 'null']
+          minimum: 0
+          maximum: 1
+          readOnly: true
+          description: Skor rekomendasi saat ini; hanya terisi pada `GET /tasks?sort=score` untuk task Ready yang layak, selain itu null. Tidak disimpan.
         state_reason: { type: [string, 'null'] }
         state_changed_at: { type: string, format: date-time }
         ready_since: { type: [string, 'null'], format: date-time }

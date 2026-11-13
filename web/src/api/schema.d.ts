@@ -163,7 +163,9 @@ export interface paths {
         };
         /**
          * Daftar task (papan status)
-         * @description Task Ready diurutkan menurut skor rekomendasi terbaru bila `sort=score`.
+         * @description Task Ready diurutkan menurut skor rekomendasi terbaru bila `sort=score`: skor dihitung
+         *     saat diminta untuk semua task Ready yang layak (sama dengan `GET /recommendations`),
+         *     tanpa menyimpan batch. Task Ready yang tidak layak dan status lain menyusul, urut `updated`.
          */
         get: operations["listTasks"];
         put?: never;
@@ -759,6 +761,8 @@ export interface components {
             parent_task_id?: number | null;
             label?: string | null;
             state: components["schemas"]["State"];
+            /** @description Skor rekomendasi saat ini; hanya terisi pada `GET /tasks?sort=score` untuk task Ready yang layak, selain itu null. Tidak disimpan. */
+            readonly score: number | null;
             state_reason?: string | null;
             /** Format: date-time */
             state_changed_at?: string;
