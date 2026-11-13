@@ -1,13 +1,11 @@
-export type Health = {
-  status: 'ok'
-  database: 'ok' | 'error'
-}
+import { api, type Schemas } from './client'
+
+export type Health = Schemas['Health']
 
 export async function fetchHealth(): Promise<Health> {
-  const res = await fetch('/api/v1/health', { headers: { Accept: 'application/json' } })
+  const { data, error, response } = await api.GET('/health')
+  if (data !== undefined) return data
   // 503 still carries a valid health body (database unreachable).
-  if (res.ok || res.status === 503) {
-    return (await res.json()) as Health
-  }
-  throw new Error(`Health check failed with status ${res.status}`)
+  if (response.status === 503 && error !== undefined) return error
+  throw new Error(`Health check failed with status ${response.status}`)
 }

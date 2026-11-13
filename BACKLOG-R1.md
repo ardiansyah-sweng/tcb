@@ -272,11 +272,13 @@ Catatan R1-14: atas keputusan pengguna (13 Nov 2026), story ini mengerjakan krit
 Bergantung pada: R1-03
 
 Kriteria penerimaan:
-- [ ] Tipe TypeScript dan klien API dibangkitkan dari `docs/tcb_openapi.yaml` (mis. `openapi-typescript`).
-- [ ] Halaman login; token disimpan aman; 401 mengarahkan ke login.
-- [ ] Navigasi samping: Beranda, Papan status, Goal & Key Result, Detail task; indikator "Running / WIP limit".
-- [ ] Pada lebar ponsel, navigasi menumpuk di atas konten.
-- [ ] Galat API ditampilkan sebagai pesan yang bisa dibaca, bukan kode mentah.
+- [x] Tipe TypeScript dan klien API dibangkitkan dari `docs/tcb_openapi.yaml` (mis. `openapi-typescript`).
+- [x] Halaman login; token disimpan aman; 401 mengarahkan ke login.
+- [x] Navigasi samping: Beranda, Papan status, Goal & Key Result, Detail task; indikator "Running / WIP limit".
+- [x] Pada lebar ponsel, navigasi menumpuk di atas konten.
+- [x] Galat API ditampilkan sebagai pesan yang bisa dibaca, bukan kode mentah.
+
+Catatan R1-15: kontrak dan skema tidak berubah. Tipe dibangkitkan oleh `openapi-typescript` ke `web/src/api/schema.d.ts` (di-commit, jangan disunting tangan; `npm run gen:api` setelah kontrak berubah). Generator ada di paket terpisah `web/tools/openapi` dengan lockfile sendiri, karena `openapi-typescript` 7 butuh TypeScript 5 sedangkan `web/` memakai TypeScript 7; job CI `web` membangkitkan ulang dan gagal bila hasilnya berbeda dari yang di-commit. Klien: `openapi-fetch` (`api.GET('/me')`, dsb.) dengan `request()` yang mengembalikan data atau melempar `ApiError`. Token (keputusan pengguna 13 Nov 2026): disimpan di `localStorage` (kunci `tcb.token`) agar login bertahan setelah tab ditutup, dengan mitigasi: hanya `auth/token.ts` yang membaca/menulisnya, token tidak pernah masuk URL atau log, respons 401 dari endpoint mana pun langsung menghapusnya lalu halaman login menampilkan "Sesi Anda berakhir. Silakan masuk lagi.", logout mencabut token di server (tetap keluar lokal walau server tak terjangkau), logout di tab lain ikut terbaca, dan bila storage diblokir token hanya disimpan di memori. Setelah login pengguna kembali ke halaman yang semula diminta. Router (keputusan pengguna 13 Nov 2026): React Router; rute `/`, `/board`, `/goals`, `/tasks`, `/tasks/:taskId` (ID atau `TCB-31`), alamat lain menampilkan "Halaman tidak ditemukan" di dalam kerangka. Isi layar masih penanda; diisi R1-16, R1-18, R1-19, R1-20. Indikator WIP memakai `wip_limit` dari `GET /me` dan jumlah `GET /tasks?state=running`, dengan query key di bawah `['tasks']` (`api/queryKeys.ts`) agar invalidasi setelah transisi ikut menyegarkannya. Pesan galat (`api/errors.ts`): pesan API dipakai bila berupa kalimat; 422 menampilkan pesan field pertama (ringkasan Laravel berakhiran "(and N more errors)" berbahasa Inggris); 5xx, badan HTML, atau pesan berupa kode diganti pesan menurut status; galat jaringan → "API tidak bisa dihubungi. Periksa koneksi, lalu coba lagi."; galat tak terduga tidak dibocorkan. Query tidak diulang untuk 4xx. Status sistem (health) pindah ke bawah form login. Tata letak mobile first: kolom (navigasi di atas, berderet dan bisa digulir) lalu sidebar mulai breakpoint `md`. Belum dicoba di browser sungguhan terhadap API lokal; perilaku diuji Vitest dengan `fetch` tiruan.
 
 ### R1-16 · Beranda · L
 Bergantung pada: R1-14, R1-15 · FR-03, FR-08, FR-12, FR-13, FR-18
@@ -381,3 +383,5 @@ Kriteria penerimaan:
 - R1-13 → R1-14 (diputuskan 13 Nov 2026): task stale yang tidak masuk tiga besar dikirim lewat `RecommendationBatch.stale_tasks` (lihat kriteria R1-14), agar pengingatnya tetap tampil walau skornya rendah.
 - R1-13: kelayakan memakai jumlah dependensi berstatus `open`. Sejak keputusan R1-12 (13 Nov 2026), dependensi ke task Cancelled ikut resolved, jadi task penunggunya bisa direkomendasikan lagi.
 - R1-13: `GET /tasks?sort=score` (kontrak: "menurut skor rekomendasi terbaru") masih 422; bisa dibuat setelah R1-14 menyimpan batch.
+- R1-15 (ide, untuk R1-21): token di `localStorage` bisa dibaca skrip bila ada celah XSS. Saat pemasangan, tambahkan header Content-Security-Policy ketat (`script-src 'self'`) di server web. Bila ingin lebih aman, pindah ke autentikasi cookie HttpOnly Sanctum SPA (`/sanctum/csrf-cookie`, `SANCTUM_STATEFUL_DOMAINS`); ini mengubah kontrak login dan perlu persetujuan.
+- R1-15: `PATCH /me` ada di kontrak, tetapi belum ada rutenya di API (hanya `GET /me`). Pengaturan bobot masuk Rilis 3 (FR-19 s.d. FR-22); WIP limit belum bisa diubah dari UI.

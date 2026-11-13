@@ -61,6 +61,12 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
+      - name: API types match docs/tcb_openapi.yaml
+        # R1-15: src/api/schema.d.ts is generated; regenerate it when the contract changes.
+        run: |
+          npm ci --prefix tools/openapi
+          npm run gen:api
+          git diff --exit-code -- src/api/schema.d.ts
       - name: Lint
         run: npm run lint
       - name: Test (Vitest)
