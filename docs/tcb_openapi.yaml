@@ -592,6 +592,9 @@ paths:
     get:
       tags: [Rekomendasi]
       summary: Rekomendasi task berikutnya beserta alasannya
+      description: >-
+        Setiap panggilan menyimpan satu batch baru. Task yang dilewati (`skipped`) sejak tengah malam
+        menurut zona waktu pengguna tidak ikut, kecuali tidak ada kandidat lain sama sekali.
       operationId: getRecommendations
       parameters:
         - name: limit
@@ -603,6 +606,7 @@ paths:
           content:
             application/json:
               schema: { $ref: '#/components/schemas/RecommendationBatch' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
   /recommendations/{recommendationId}/decision:
     parameters:
@@ -625,7 +629,9 @@ paths:
               properties:
                 decision: { type: string, enum: [picked, skipped, scheduled] }
       responses:
-        '204': { description: Dicatat }
+        '204': { description: Dicatat; keputusan berikutnya menggantikannya }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
   # ------------------------------------------------------------------ Kalender
   /integrations/google-calendar:
@@ -1289,7 +1295,7 @@ components:
 
     Recommendation:
       type: object
-      required: [id, rank, score, breakdown, reasons, task]
+      required: [id, rank, score, breakdown, reasons, stale, task]
       properties:
         id: { type: integer }
         rank: { type: integer, minimum: 1 }
@@ -1306,6 +1312,9 @@ components:
           type: array
           description: Dua komponen terbesar dalam kalimat, mis. "Key Result bobot tinggi, progres 30%".
           items: { type: string }
+        stale:
+          type: boolean
+          description: Lebih dari 14 hari di Ready; UI menampilkan pengingat "kerjakan, tunda, atau batalkan". Dihitung saat batch dibuat, tidak disimpan.
         suggested_slot:
           oneOf:
             - type: 'null'

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 pest()->extend(TestCase::class)->in('Feature');
-pest()->use(RefreshDatabase::class)->in('Feature/Database', 'Feature/Auth', 'Feature/Goal', 'Feature/Task');
+pest()->use(RefreshDatabase::class)->in('Feature/Database', 'Feature/Auth', 'Feature/Goal', 'Feature/Task', 'Feature/Recommendation');
 
 /**
  * Forget resolved guards so the next request authenticates from scratch,

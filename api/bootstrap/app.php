@@ -3,6 +3,7 @@
 use App\Models\Dependency;
 use App\Models\KeyResult;
 use App\Models\Objective;
+use App\Models\Recommendation;
 use App\Models\Task;
 use App\Support\DatabaseErrors;
 use Illuminate\Auth\AuthenticationException;
@@ -58,6 +59,7 @@ return Application::configure(basePath: dirname(__DIR__))
                     KeyResult::class => 'Key Result',
                     Task::class => 'Task',
                     Dependency::class => 'Dependensi',
+                    Recommendation::class => 'Rekomendasi',
                     default => 'Data',
                 };
 

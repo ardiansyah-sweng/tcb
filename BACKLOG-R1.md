@@ -253,14 +253,18 @@ Catatan R1-13: kontrak dan skema tidak berubah; belum ada endpoint (R1-14). Kela
 Bergantung pada: R1-13, R1-11 · FR-12, FR-13
 
 Kriteria penerimaan:
-- [ ] `GET /recommendations?limit=3` menyimpan satu batch (`batch_id`, peringkat, skor, rincian, alasan) dan mengembalikannya.
-- [ ] `running_full: true` bila WIP penuh, agar UI menampilkan "Pindah ke task ini".
-- [ ] `POST /recommendations/{id}/decision` menerima `picked`, `skipped`, `scheduled`.
-- [ ] Task yang di-`skipped` tidak muncul lagi di batch berikutnya pada hari yang sama, kecuali tidak ada kandidat lain.
+- [x] `GET /recommendations?limit=3` menyimpan satu batch (`batch_id`, peringkat, skor, rincian, alasan) dan mengembalikannya.
+- [x] `running_full: true` bila WIP penuh, agar UI menampilkan "Pindah ke task ini".
+- [x] `POST /recommendations/{id}/decision` menerima `picked`, `skipped`, `scheduled`.
+- [x] Task yang di-`skipped` tidak muncul lagi di batch berikutnya pada hari yang sama, kecuali tidak ada kandidat lain.
+- [x] _(Keputusan pengguna 13 Nov 2026, dari catatan R1-13.)_ Setiap item rekomendasi memuat `stale` (boolean, dari `RecommendationScorer`), agar UI bisa menampilkan pengingat "kerjakan, tunda, atau batalkan". `docs/tcb_openapi.yaml` (skema `Recommendation`) diperbarui di commit yang sama. Nilainya dihitung saat batch dibuat dan tidak disimpan, jadi skema database tidak berubah.
+- [ ] _(Keputusan pengguna 13 Nov 2026, dari catatan R1-13.)_ `RecommendationBatch` memuat `stale_tasks`: daftar `Task` Ready yang stale (lebih dari 14 hari, menurut `RecommendationScorer`) tetapi tidak ada di `items`, paling banyak 3, yang paling lama menunggu dulu; kosong bila tidak ada. Hanya task yang layak (aturan kelayakan R1-13). Dihitung saat diminta, tidak disimpan. `docs/tcb_openapi.yaml` diperbarui di commit yang sama. UI-nya (bagian "Sudah lama menunggu" dengan Kerjakan, Tunda, Batalkan) dikerjakan di R1-16.
+
+Catatan R1-14: atas keputusan pengguna (13 Nov 2026), story ini mengerjakan kriteria `stale` saja; `stale_tasks` belum dikerjakan dan tetap terbuka. Kode: `RecommendationService` (`app/Services/Recommendation`) memuat task Ready milik pengguna beserta jumlah dependensi `open`, subtask terbuka, serta bobot dan progres KR dari view `key_result_progress`, lalu memanggil `RecommendationScorer::rank()`. Jam aplikasi `App\Support\SystemClock` (terikat ke `Psr\Clock\ClockInterface`) mengikuti Carbon, jadi `travelTo()` di tes ikut menggerakkan scorer. Setiap panggilan `GET /recommendations` menyimpan batch baru (`generated_at` sama untuk semua baris); bila tak ada kandidat, `items` kosong, `batch_id` tetap dibuat, dan tidak ada baris yang disimpan. `running_full` = jumlah Running ≥ `wip_limit`. Respons `score`, `breakdown`, `reasons`, `stale` diambil dari hasil scorer (`breakdown` tanpa `fit`); `suggested_slot` selalu `null` sampai Rilis 2. `limit` di luar 1–10 atau bukan bilangan bulat → 422. Keputusan: `picked`/`skipped`/`scheduled` mengisi `decision` dan `decided_at`, keputusan berikutnya menggantikan yang lama, task tidak berubah status; ID tak dikenal atau milik pengguna lain → 404 "Rekomendasi tidak ditemukan.", keputusan kosong/tak dikenal → 422. Aturan skipped (keputusan pengguna 13 Nov 2026): task dengan rekomendasi `skipped` sejak tengah malam zona waktu pengguna dikeluarkan; bila tidak ada kandidat lain sama sekali, daftar lengkap dipakai lagi, tetapi slot yang kosong **tidak** diisi task yang sudah dilewati. Hanya `skipped` yang menyembunyikan task (`picked` dan `scheduled` tidak). Atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan `stale` (wajib) di `Recommendation`, 422 pada `GET /recommendations`, serta 404 dan 422 pada `POST /recommendations/{id}/decision`. Skema database tidak berubah.
 
 ---
 
-## M4 · Antarmuka (rujukan: mockup "Mockup TCB v1")
+## M4 · Antarmuka (rujukan: docs/mockup/tcb-v1)
 
 ### R1-15 · Kerangka UI, login, klien API · M
 Bergantung pada: R1-03
@@ -371,6 +375,7 @@ Kriteria penerimaan:
 - R1-12 (ide, belum dikerjakan): SRS 12 langkah 3 ("pemberitahuan ringan di Beranda bahwa task siap dikerjakan") belum ada; datanya bisa diambil dari log transisi `waiting → ready` bersumber `system`. Cocok dikerjakan di R1-16 (Beranda).
 - R1-12 (perlu keputusan): dependensi pada task yang menjadi Cancelled tetap `open`, jadi task penunggunya tetap Waiting. Begitu juga `DELETE /dependencies/{id}` tidak memicu pelepasan (tes R1-07 meminta kedua task tidak berubah). Keduanya bisa memakai `DependencyService` bila diinginkan.
 - R1-12: `DependencyService` me-resolve `TransitionService` lewat `app()` karena keduanya saling bergantung (Done memicu pelepasan, pelepasan memakai transisi).
-- R1-13 (perlu keputusan, untuk R1-14): skema `Recommendation` di kontrak belum punya field `stale`, dan tabel `recommendations` tidak menyimpannya. Pilih: tambah `stale` (boolean, dihitung saat batch dibuat) ke kontrak, atau tampilkan pengingat lewat alasan saja. Perubahan kontrak perlu persetujuan.
+- R1-13 → R1-14 (diputuskan 13 Nov 2026): `stale` ditambahkan ke skema `Recommendation` di kontrak, dikerjakan di R1-14 (lihat kriteria terakhirnya).
+- R1-13 → R1-14 (diputuskan 13 Nov 2026): task stale yang tidak masuk tiga besar dikirim lewat `RecommendationBatch.stale_tasks` (lihat kriteria R1-14), agar pengingatnya tetap tampil walau skornya rendah.
 - R1-13: kelayakan memakai jumlah dependensi berstatus `open`. Karena dependensi ke task Cancelled tetap `open` (catatan R1-12), task penunggunya tidak akan pernah direkomendasikan sampai keputusan itu diambil.
 - R1-13: `GET /tasks?sort=score` (kontrak: "menurut skor rekomendasi terbaru") masih 422; bisa dibuat setelah R1-14 menyimpan batch.

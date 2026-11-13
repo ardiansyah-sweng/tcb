@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\KeyResultController;
 use App\Http\Controllers\Api\MeController;
 use App\Http\Controllers\Api\ObjectiveController;
+use App\Http\Controllers\Api\RecommendationController;
 use App\Http\Controllers\Api\SwitchController;
 use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\TransitionController;
@@ -40,6 +41,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/tasks/{task}/transitions', [TransitionController::class, 'store'])->name('tasks.transitions.store');
 
     Route::post('/switch', SwitchController::class)->name('switch');
+
+    Route::get('/recommendations', [RecommendationController::class, 'index'])->name('recommendations.index');
+    Route::post('/recommendations/{recommendation}/decision', [RecommendationController::class, 'decide'])
+        ->whereNumber('recommendation')
+        ->name('recommendations.decide');
 
     Route::get('/tasks/{task}/contexts', [ContextController::class, 'index'])->name('tasks.contexts.index');
     Route::post('/tasks/{task}/contexts', [ContextController::class, 'store'])->name('tasks.contexts.store');
