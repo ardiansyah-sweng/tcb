@@ -437,7 +437,7 @@ paths:
       summary: Pindah konteks secara atomik
       description: |
         Dalam satu transaksi: simpan konteks task yang sedang berjalan, pindahkan ke
-        `ready`/`waiting`/`suspended`, lalu jalankan task tujuan. Gagal sebagian = tidak ada
+        `ready`/`waiting`, lalu jalankan task tujuan. Gagal sebagian = tidak ada
         yang berubah.
       operationId: switchTask
       requestBody:
@@ -1208,7 +1208,7 @@ components:
       required: [from_task_id, from_to, context, to_task_id]
       properties:
         from_task_id: { type: string, description: Task yang sedang running }
-        from_to: { type: string, enum: [ready, waiting, suspended], default: ready }
+        from_to: { type: string, enum: [ready, waiting], default: ready }
         reason: { type: [string, 'null'], description: Wajib bila from_to = waiting }
         context: { $ref: '#/components/schemas/ContextInput' }
         to_task_id: { type: string }

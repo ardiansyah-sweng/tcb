@@ -214,6 +214,7 @@ Kriteria penerimaan:
 - [x] Transisi ke Running saat WIP penuh → 409 `wip_full` berisi `wip_limit` dan daftar task yang sedang berjalan.
 - [x] `recommendation_id` terisi → keputusan rekomendasi dicatat `picked`.
 - [x] Tes konkurensi: dua permintaan Running bersamaan untuk task berbeda → tepat satu berhasil. _(`tests/Feature/Concurrency`: dua proses PHP terpisah, data di-commit, dibersihkan dengan `TRUNCATE users, personal_access_tokens CASCADE` hanya di `tcb_test`.)_
+- [x] _(Keputusan pengguna 13 Nov 2026, dari catatan R1-11.)_ `from_to` hanya menerima `ready` dan `waiting`; `suspended` dihapus dari enum kontrak karena `running → suspended` bukan transisi sah (SRS bagian 4: Suspended hanya dari Ready atau Waiting). `from_to: suspended` → 422 pada `from_to`.
 
 ### R1-12 · DependencyService: pelepasan otomatis · S
 Bergantung pada: R1-07, R1-10 · Spesifikasi: SRS bagian 12
@@ -294,7 +295,7 @@ Kriteria penerimaan:
 - [ ] Menampilkan task yang ditinggalkan dan task yang dimulai.
 - [ ] Form diisi awal dari `/contexts/draft`; pengguna cukup mengoreksi.
 - [ ] Baris progres satuan (− angka +, "dari N satuan") hanya muncul bila task punya `unit_total`.
-- [ ] Pilihan tujuan task lama: Ready (default), Waiting (alasan wajib), Suspended.
+- [ ] Pilihan tujuan task lama: Ready (default), Waiting (alasan wajib). _(Suspended dihapus 13 Nov 2026 mengikuti keputusan R1-11; menunda task dilakukan lewat Ready lalu Suspended.)_
 - [ ] "Simpan & pindah" memanggil `POST /switch`; galat ditampilkan tanpa menutup dialog dan tanpa kehilangan isian.
 - [ ] Bisa diselesaikan dengan keyboard saja (Tab, Enter, Esc).
 
@@ -370,7 +371,7 @@ Kriteria penerimaan:
 - R1-10: atas persetujuan pengguna, `docs/tcb_openapi.yaml` kini mencantumkan 404 pada ketiga endpoint `/tasks/{taskId}/contexts…` dan 422 pada `POST /tasks/{taskId}/contexts`.
 - R1-10 (ide, belum dikerjakan): `tasks.last_activity_at` belum diisi di mana pun. Kandidat: isi saat transisi dan saat menyimpan konteks, untuk deteksi `stale_running`.
 - R1-07: pemeriksaan siklus dependensi tidak memakai kunci; dua permintaan bersamaan (A→B dan B→A) secara teori bisa lolos. Risiko kecil untuk satu pengguna.
-- R1-11 (perlu keputusan): `SwitchRequest.from_to` di kontrak menerima `suspended`, tetapi `allowed_transitions` tidak punya `running → suspended`. Kini `/switch` dengan `from_to: suspended` selalu 409 `invalid_transition`. Pilih: tambah transisi itu ke skema, atau hapus `suspended` dari enum kontrak.
+- R1-11 → diputuskan 13 Nov 2026: `suspended` dihapus dari `SwitchRequest.from_to` (kontrak dan kode); `/switch` dengan `from_to: suspended` kini 422. Kriteria R1-17 ikut disesuaikan.
 - R1-11: `/switch` mengunci kedua baris task (urut ID) sebelum transisi agar dua pindah berlawanan arah tidak deadlock. Task asal yang ternyata tidak Running → 409 `conflict` (bukan `invalid_transition`, karena mis. `waiting → ready` sah dan akan diam-diam mengubah task yang salah). ID task atau rekomendasi yang tidak dikenal → 422 pada field-nya (kontrak `/switch` tidak punya 404).
 - R1-12 (ide, belum dikerjakan): SRS 12 langkah 3 ("pemberitahuan ringan di Beranda bahwa task siap dikerjakan") belum ada; datanya bisa diambil dari log transisi `waiting → ready` bersumber `system`. Cocok dikerjakan di R1-16 (Beranda).
 - R1-12 (perlu keputusan): dependensi pada task yang menjadi Cancelled tetap `open`, jadi task penunggunya tetap Waiting. Begitu juga `DELETE /dependencies/{id}` tidak memicu pelepasan (tes R1-07 meminta kedua task tidak berubah). Keduanya bisa memakai `DependencyService` bila diinginkan.

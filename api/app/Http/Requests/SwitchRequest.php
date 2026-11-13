@@ -21,7 +21,8 @@ class SwitchRequest extends FormRequest
 {
     use ValidatesContextInput;
 
-    public const FROM_STATES = ['ready', 'waiting', 'suspended'];
+    /** No suspended: running → suspended is not a transition (decision 13 Nov 2026, SRS bagian 4). */
+    public const FROM_STATES = ['ready', 'waiting'];
 
     private ?Task $fromTask = null;
 

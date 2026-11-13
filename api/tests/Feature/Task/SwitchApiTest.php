@@ -274,12 +274,24 @@ it('validates the request body', function (array $body, string $field) {
     'to_task_id unknown' => [['to_task_id' => '999999'], 'to_task_id'],
     'to_task_id same as from' => [['to_task_id' => '{from}'], 'to_task_id'],
     'from_to unknown' => [['from_to' => 'done'], 'from_to'],
+    // Decision 13 Nov 2026: running → suspended is not a transition (SRS bagian 4).
+    'from_to suspended' => [['from_to' => 'suspended'], 'from_to'],
     'context not an object' => [['context' => 'catatan'], 'context'],
     'context link without url' => [['context' => ['links' => [['title' => 'x']]]], 'context.links.0.url'],
     'reason not text' => [['reason' => ['a']], 'reason'],
     'recommendation_id not an integer' => [['recommendation_id' => 'x'], 'recommendation_id'],
     'recommendation_id unknown' => [['recommendation_id' => 999999], 'recommendation_id'],
 ]);
+
+it('names only ready and waiting as targets for the left task', function () {
+    $from = runningTask($this->user);
+    $to = walkTo(makeTask($this->user), 'ready');
+
+    $this->postJson('/api/v1/switch', [
+        'from_task_id' => $from->task_key, 'from_to' => 'suspended', 'context' => (object) [], 'to_task_id' => $to->task_key,
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors(['from_to' => 'Status task asal tidak dikenal. Pilihan: ready, waiting.']);
+});
 
 it('checks context.unit_done against the left task', function () {
     $from = runningTask($this->user, ['unit_total' => 40]);
