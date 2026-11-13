@@ -75,7 +75,7 @@ it('stores one batch of the top three and returns it', function () {
 
     $response = recGet('?limit=3')->assertOk();
 
-    expect(array_keys($response->json()))->toBe(['batch_id', 'generated_at', 'running_full', 'items'])
+    expect(array_keys($response->json()))->toBe(['batch_id', 'generated_at', 'running_full', 'items', 'stale_tasks'])
         ->and(Str::isUuid($response->json('batch_id')))->toBeTrue()
         ->and(Carbon::parse($response->json('generated_at'))->eq(Carbon::now()))->toBeTrue()
         ->and($response->json('running_full'))->toBeFalse()
@@ -403,4 +403,127 @@ it('marks tasks more than 14 days in Ready as stale', function () {
         ->and($items[$stale->task_key]['reasons'])->toContain('Sudah 15 hari di Ready');
 
     expect(DB::getSchemaBuilder()->hasColumn('recommendations', 'stale'))->toBeFalse();
+});
+
+/*
+| Criterion (decision 13 Nov 2026): RecommendationBatch carries stale_tasks,
+| the eligible Ready tasks that are stale (more than 14 days, per
+| RecommendationScorer) but not in items, at most 3, longest waiting first,
+| empty when there are none; computed on request, not stored.
+| Decision 13 Nov 2026 (R1-14 stale_tasks): a task skipped today stays out
+| of stale_tasks as well.
+*/
+
+/** @return list<string> task keys of stale_tasks, in order */
+function recStaleKeys(TestResponse $response): array
+{
+    return array_map(fn (array $task) => $task['task_key'], $response->json('stale_tasks'));
+}
+
+it('lists stale tasks that did not make it into items', function () {
+    $top = recReady($this->user, ['title' => 'Prioritas kritis', 'priority' => 4]);
+    $staleLow = recReady($this->user, ['title' => 'Lama, prioritas rendah', 'priority' => 1], daysAgo: 20);
+    recReady($this->user, ['title' => 'Baru, prioritas rendah', 'priority' => 1]);
+
+    $response = recGet('?limit=1')->assertOk();
+
+    expect(recKeys($response))->toBe([$top->task_key])
+        ->and(recStaleKeys($response))->toBe([$staleLow->task_key]);
+});
+
+it('returns stale_tasks as Task objects', function () {
+    recReady($this->user, ['title' => 'Prioritas kritis', 'priority' => 4]);
+    $stale = recReady($this->user, ['title' => 'Lama', 'priority' => 1], daysAgo: 20);
+
+    $task = recGet('?limit=1')->assertOk()->json('stale_tasks.0');
+
+    expect($task)->toHaveKeys(['id', 'task_key', 'title', 'state', 'priority', 'ready_since', 'is_orphan'])
+        ->and($task['id'])->toBe($stale->id)
+        ->and($task['state'])->toBe('ready')
+        ->and(Carbon::parse($task['ready_since'])->eq($stale->ready_since))->toBeTrue();
+});
+
+it('does not repeat a stale task that is already in items', function () {
+    $stale = recReady($this->user, ['title' => 'Lama', 'priority' => 4], daysAgo: 20);
+    recReady($this->user, ['title' => 'Baru', 'priority' => 1]);
+
+    $response = recGet()->assertOk();
+
+    expect(recKeys($response))->toContain($stale->task_key)
+        ->and($response->json('stale_tasks'))->toBe([]);
+});
+
+it('returns an empty stale_tasks when nothing is stale', function () {
+    recReady($this->user, ['title' => 'Tepat 14 hari', 'priority' => 1], daysAgo: 14);
+    recReady($this->user, ['title' => 'A', 'priority' => 4]);
+
+    expect(recGet('?limit=1')->assertOk()->json('stale_tasks'))->toBe([]);
+});
+
+it('returns an empty stale_tasks in an empty batch', function () {
+    expect(recGet()->assertOk()->json('stale_tasks'))->toBe([]);
+});
+
+it('lists at most three stale tasks, the longest waiting first', function () {
+    recReady($this->user, ['title' => 'Prioritas kritis', 'priority' => 4]);
+    $d16 = recReady($this->user, ['title' => '16 hari', 'priority' => 1], daysAgo: 16);
+    $d40 = recReady($this->user, ['title' => '40 hari', 'priority' => 1], daysAgo: 40);
+    recReady($this->user, ['title' => '15 hari', 'priority' => 1], daysAgo: 15);
+    $d25 = recReady($this->user, ['title' => '25 hari', 'priority' => 1], daysAgo: 25);
+
+    $response = recGet('?limit=1')->assertOk();
+
+    expect(recStaleKeys($response))->toBe([$d40->task_key, $d25->task_key, $d16->task_key]);
+});
+
+it('orders stale tasks with the same wait by id', function () {
+    recReady($this->user, ['title' => 'Prioritas kritis', 'priority' => 4]);
+    $first = recReady($this->user, ['title' => 'Pertama', 'priority' => 1], daysAgo: 20);
+    $second = recReady($this->user, ['title' => 'Kedua', 'priority' => 1], daysAgo: 20);
+
+    expect(recStaleKeys(recGet('?limit=1')))->toBe([$first->task_key, $second->task_key]);
+});
+
+it('lists only eligible stale tasks of the owner', function () {
+    recReady($this->user, ['title' => 'Prioritas kritis', 'priority' => 4]);
+    $eligible = recReady($this->user, ['title' => 'Layak', 'priority' => 1], daysAgo: 20);
+
+    $deleted = recReady($this->user, ['title' => 'Dihapus', 'priority' => 1], daysAgo: 30);
+    $deleted->delete();
+
+    $blocked = recReady($this->user, ['title' => 'Terhambat', 'priority' => 1], daysAgo: 30);
+    Dependency::create(['owner_id' => $this->user->id, 'task_id' => $blocked->id, 'external_description' => 'Data dari asisten']);
+
+    $parent = recReady($this->user, ['title' => 'Induk dengan subtask terbuka', 'priority' => 1], daysAgo: 30);
+    makeTask($this->user, ['title' => 'Subtask terbuka', 'parent_task_id' => $parent->id]);
+
+    recReady(User::factory()->create(), ['title' => 'Milik orang lain', 'priority' => 1], daysAgo: 30);
+
+    expect(recStaleKeys(recGet('?limit=1')))->toBe([$eligible->task_key]);
+});
+
+it('leaves a stale task skipped today out of stale_tasks', function () {
+    $stale = recReady($this->user, ['title' => 'Lama', 'priority' => 4], daysAgo: 20);
+    $other = recReady($this->user, ['title' => 'Lain', 'priority' => 1]);
+
+    $first = recGet('?limit=1');
+    expect(recKeys($first))->toBe([$stale->task_key]);
+    recDecide($first->json('items.0.id'), 'skipped')->assertNoContent();
+
+    $next = recGet('?limit=1');
+    expect(recKeys($next))->toBe([$other->task_key])
+        ->and($next->json('stale_tasks'))->toBe([]);
+
+    // The next day (Jakarta) it is back.
+    $this->travelTo(Carbon::parse('2026-11-14 00:05', 'Asia/Jakarta'));
+    expect(recKeys(recGet('?limit=1')))->toBe([$stale->task_key]);
+});
+
+it('does not store stale_tasks', function () {
+    recReady($this->user, ['title' => 'Prioritas kritis', 'priority' => 4]);
+    recReady($this->user, ['title' => 'Lama', 'priority' => 1], daysAgo: 20);
+
+    recGet('?limit=1')->assertOk();
+
+    expect(Recommendation::count())->toBe(1);
 });

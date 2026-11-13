@@ -1282,7 +1282,7 @@ components:
 
     RecommendationBatch:
       type: object
-      required: [batch_id, generated_at, running_full, items]
+      required: [batch_id, generated_at, running_full, items, stale_tasks]
       properties:
         batch_id: { type: string, format: uuid }
         generated_at: { type: string, format: date-time }
@@ -1292,6 +1292,15 @@ components:
         items:
           type: array
           items: { $ref: '#/components/schemas/Recommendation' }
+        stale_tasks:
+          type: array
+          maxItems: 3
+          description: >-
+            Task Ready yang layak direkomendasikan dan stale (lebih dari 14 hari di Ready) tetapi tidak ada
+            di `items`, paling lama menunggu dulu, paling banyak 3; kosong bila tidak ada. Task yang dilewati
+            (`skipped`) hari ini tidak ikut. Untuk pengingat "kerjakan, tunda, atau batalkan" di Beranda.
+            Dihitung saat diminta, tidak disimpan.
+          items: { $ref: '#/components/schemas/Task' }
 
     Recommendation:
       type: object

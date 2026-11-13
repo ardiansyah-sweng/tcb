@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RecommendationDecisionRequest;
 use App\Http\Requests\RecommendationIndexRequest;
 use App\Http\Resources\RecommendationResource;
+use App\Http\Resources\TaskResource;
 use App\Models\Recommendation;
+use App\Models\Task;
 use App\Services\Recommendation\RecommendationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -27,6 +29,10 @@ class RecommendationController extends Controller
             'items' => array_map(
                 fn (array $item) => (new RecommendationResource($item))->resolve($request),
                 $batch['items'],
+            ),
+            'stale_tasks' => array_map(
+                fn (Task $task) => (new TaskResource($task))->resolve($request),
+                $batch['stale_tasks'],
             ),
         ]);
     }

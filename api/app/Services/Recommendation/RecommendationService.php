@@ -25,6 +25,8 @@ use Throwable;
  */
 class RecommendationService
 {
+    public const STALE_TASKS_LIMIT = 3;
+
     public function __construct(
         private readonly RecommendationScorer $scorer,
         private readonly ClockInterface $clock,
@@ -35,7 +37,8 @@ class RecommendationService
      *     batch_id: string,
      *     generated_at: CarbonImmutable,
      *     running_full: bool,
-     *     items: list<array{recommendation: Recommendation, scored: ScoredTask, task: Task}>
+     *     items: list<array{recommendation: Recommendation, scored: ScoredTask, task: Task}>,
+     *     stale_tasks: list<Task>
      * }
      */
     public function generate(User $user, int $limit = 3): array
@@ -78,7 +81,37 @@ class RecommendationService
             'generated_at' => $now,
             'running_full' => $this->runningFull($user),
             'items' => $items,
+            'stale_tasks' => $this->staleTasks($ranked, $chosen, $skipped, $tasks),
         ];
+    }
+
+    /**
+     * Eligible stale tasks left out of the batch, so the "kerjakan, tunda,
+     * atau batalkan" reminder shows even when their score is low. Longest
+     * waiting first (ready_since, then id), at most STALE_TASKS_LIMIT.
+     * Tasks skipped today stay out here as well (decision 13 Nov 2026).
+     * Computed on request, not stored.
+     *
+     * @param  list<ScoredTask>  $ranked  eligible tasks only (scorer rank())
+     * @param  list<ScoredTask>  $chosen
+     * @param  array<int, true>  $skipped
+     * @param  Collection<int, Task>  $tasks
+     * @return list<Task>
+     */
+    private function staleTasks(array $ranked, array $chosen, array $skipped, Collection $tasks): array
+    {
+        $inItems = array_flip(array_map(fn (ScoredTask $s) => $s->taskId, $chosen));
+
+        return collect($ranked)
+            ->filter(fn (ScoredTask $s) => $s->stale && ! isset($inItems[$s->taskId]) && ! isset($skipped[$s->taskId]))
+            ->map(fn (ScoredTask $s) => $tasks[$s->taskId])
+            ->sortBy([
+                fn (Task $a, Task $b) => $a->ready_since <=> $b->ready_since,
+                fn (Task $a, Task $b) => $a->id <=> $b->id,
+            ])
+            ->take(self::STALE_TASKS_LIMIT)
+            ->values()
+            ->all();
     }
 
     /**

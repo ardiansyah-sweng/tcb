@@ -889,6 +889,8 @@ export interface components {
             /** @description true = memulai task akan memicu pindah konteks (/switch). */
             running_full: boolean;
             items: components["schemas"]["Recommendation"][];
+            /** @description Task Ready yang layak direkomendasikan dan stale (lebih dari 14 hari di Ready) tetapi tidak ada di `items`, paling lama menunggu dulu, paling banyak 3; kosong bila tidak ada. Task yang dilewati (`skipped`) hari ini tidak ikut. Untuk pengingat "kerjakan, tunda, atau batalkan" di Beranda. Dihitung saat diminta, tidak disimpan. */
+            stale_tasks: components["schemas"]["Task"][];
         };
         Recommendation: {
             id: number;
