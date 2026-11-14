@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router'
 import { useMe } from '../auth/session'
 import { HomeActionsContext, type DialogRequest } from '../home/actions'
 import { ContextDialog } from '../home/ContextDialog'
+import { focusRecommendations } from '../home/focus'
 import { DEFAULT_TIMEZONE, formatLongDate } from '../home/format'
 import { QuickAdd } from '../home/QuickAdd'
 import { Recommendations } from '../home/Recommendations'
@@ -18,6 +20,13 @@ export default function HomePage() {
   const [dialog, setDialog] = useState<DialogRequest | null>(null)
   const closeDialog = useCallback(() => setDialog(null), [])
   const actions = useMemo(() => ({ openDialog: setDialog }), [])
+
+  // "Pindah task" on the Detail task (R1-19) comes here to pick the next task.
+  const location = useLocation()
+  const focus = (location.state as { focus?: string } | null)?.focus
+  useEffect(() => {
+    if (focus === 'recommendations') focusRecommendations()
+  }, [focus, location.key])
 
   return (
     <HomeActionsContext.Provider value={actions}>

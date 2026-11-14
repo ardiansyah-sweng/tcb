@@ -1197,6 +1197,15 @@ components:
               type: array
               items: { $ref: '#/components/schemas/CalendarLink' }
             current_session_started_at: { type: [string, 'null'], format: date-time }
+            allowed_transitions:
+              type: array
+              readOnly: true
+              description: |
+                Status yang sah dituju dari status saat ini, urut siklus hidup, dibaca dari tabel
+                `allowed_transitions`. Klien memakainya untuk tombol aksi tanpa menyalin aturan transisi.
+                Syarat lain (alasan, konteks, WIP limit) tetap diperiksa `POST /tasks/{taskId}/transitions`.
+              items: { $ref: '#/components/schemas/State' }
+          required: [allowed_transitions]
 
     TransitionRequest:
       type: object

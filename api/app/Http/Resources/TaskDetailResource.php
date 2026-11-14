@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Task;
+use App\Services\TaskStateMachine;
 use Illuminate\Http\Request;
 
 /**
@@ -35,6 +36,9 @@ class TaskDetailResource extends TaskResource
             'subtasks' => TaskResource::collection($this->subtasks),
             'open_dependencies' => DependencyResource::collection($this->openDependencies),
             'current_session_started_at' => $this->openSession?->started_at,
+            // Read from the allowed_transitions table (CLAUDE.md rule 2), so
+            // clients show valid actions without a copy of the rules.
+            'allowed_transitions' => app(TaskStateMachine::class)->targetsFrom($this->state),
         ];
     }
 }

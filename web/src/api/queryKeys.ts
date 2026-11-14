@@ -12,6 +12,9 @@ export const taskDetailQueryKey = (taskId: number) => ['tasks', 'detail', taskId
 /** One Papan status column (R1-18): one state with the board filters. */
 export const boardColumnQueryKey = (state: string, filters: Record<string, string>) => ['tasks', 'board', state, filters] as const
 export const contextDraftQueryKey = (taskId: number) => ['tasks', 'draft', taskId] as const
+/** Detail task (R1-19): the detail by URL reference (TCB-31 or 31) and its contexts, log, and dependencies. */
+export const taskSubQueryKey = (kind: 'detail' | 'contexts' | 'transitions' | 'dependencies', ref: number | string) =>
+  ['tasks', kind, ref] as const
 
 /** Every GET /recommendations stores a new batch, so it is fetched only on purpose. */
 export const recommendationsQueryKey = ['recommendations'] as const

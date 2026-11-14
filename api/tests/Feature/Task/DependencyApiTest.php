@@ -3,6 +3,7 @@
 use App\Models\Dependency;
 use App\Models\Task;
 use App\Models\User;
+use App\Services\TaskStateMachine;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 
@@ -379,6 +380,10 @@ it('does not run more queries per subtask or dependency in the detail', function
 
         return count(DB::getQueryLog());
     };
+
+    // TaskDetail.allowed_transitions (R1-19) reads the table once per request;
+    // the test app keeps that instance, so read it before counting.
+    app(TaskStateMachine::class)->targetsFrom('new');
 
     makeTask($this->user, ['parent_task_id' => $task->id]);
     waitsForTask($task, makeTask($this->user));

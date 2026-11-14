@@ -811,6 +811,12 @@ export interface components {
             calendar_links?: components["schemas"]["CalendarLink"][];
             /** Format: date-time */
             current_session_started_at?: string | null;
+            /**
+             * @description Status yang sah dituju dari status saat ini, urut siklus hidup, dibaca dari tabel
+             *     `allowed_transitions`. Klien memakainya untuk tombol aksi tanpa menyalin aturan transisi.
+             *     Syarat lain (alasan, konteks, WIP limit) tetap diperiksa `POST /tasks/{taskId}/transitions`.
+             */
+            readonly allowed_transitions: components["schemas"]["State"][];
         };
         TransitionRequest: {
             to: components["schemas"]["State"];

@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { clearToken, getToken, setToken } from './auth/token'
 import { json, mockApi, requestsOf, task, user } from './test/api'
 import { renderApp } from './test/render'
+import { detail } from './test/detail'
 
 const health = { 'GET /health': { status: 200, body: { status: 'ok', database: 'ok' } } }
 
@@ -170,10 +171,11 @@ describe('layout', () => {
   })
 
   it('accepts a task key in the detail URL', async () => {
-    signedIn()
+    signedIn({ 'GET /tasks/TCB-31': { status: 200, body: detail } })
     renderApp('/tasks/TCB-31')
-    expect(await screen.findByRole('heading', { name: 'Detail task' })).toBeInTheDocument()
-    expect(screen.getByText('TCB-31')).toBeInTheDocument()
+    // R1-19 replaced the placeholder: the task is loaded by its key.
+    expect(await screen.findByRole('heading', { level: 1, name: 'Koreksi UTS kelas A' })).toBeInTheDocument()
+    expect(within(screen.getByRole('navigation', { name: 'Lokasi' })).getByText('TCB-31')).toBeInTheDocument()
     const nav = screen.getByRole('navigation', { name: 'Navigasi utama' })
     expect(within(nav).getByRole('link', { name: 'Detail task' })).toHaveAttribute('aria-current', 'page')
   })

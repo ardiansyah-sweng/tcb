@@ -1,9 +1,8 @@
 import type { ReactNode } from 'react'
-import { useParams } from 'react-router'
 
 /**
- * Screens filled in by later stories (Detail task R1-19,
- * Goal & Key Result R1-20). R1-15 only provides the frame.
+ * Screens filled in by later stories (Goal & Key Result R1-20).
+ * R1-15 only provides the frame.
  */
 
 function Page({ title, children }: { title: string; children?: ReactNode }) {
@@ -17,19 +16,6 @@ function Page({ title, children }: { title: string; children?: ReactNode }) {
 
 export function GoalsPage() {
   return <Page title="Goal & Key Result" />
-}
-
-export function TaskDetailPage() {
-  const { taskId } = useParams()
-  return (
-    <Page title="Detail task">
-      {taskId ? (
-        <p className="font-mono text-slate-800">{taskId}</p>
-      ) : (
-        <p>Pilih task dari Beranda atau Papan status untuk melihat detailnya.</p>
-      )}
-    </Page>
-  )
 }
 
 export function NotFoundPage() {

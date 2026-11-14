@@ -4,7 +4,8 @@ import { Layout } from './components/Layout'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import BoardPage from './pages/BoardPage'
-import { GoalsPage, NotFoundPage, TaskDetailPage } from './pages/placeholders'
+import { GoalsPage, NotFoundPage } from './pages/placeholders'
+import TaskDetailPage from './pages/TaskDetailPage'
 
 export default function App() {
   return (
