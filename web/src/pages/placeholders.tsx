@@ -1,9 +1,6 @@
 import type { ReactNode } from 'react'
 
-/**
- * Screens filled in by later stories (Goal & Key Result R1-20).
- * R1-15 only provides the frame.
- */
+/** Pages without their own screen (R1-15 frame). */
 
 function Page({ title, children }: { title: string; children?: ReactNode }) {
   return (
@@ -12,10 +9,6 @@ function Page({ title, children }: { title: string; children?: ReactNode }) {
       <div className="mt-4 text-slate-600">{children ?? <p>Halaman ini sedang disiapkan.</p>}</div>
     </section>
   )
-}
-
-export function GoalsPage() {
-  return <Page title="Goal & Key Result" />
 }
 
 export function NotFoundPage() {

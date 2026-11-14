@@ -1,6 +1,6 @@
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
 import { api, request, type Schemas } from './client'
-import { activeObjectivesQueryKey } from './objectives'
+import { activeObjectivesQueryKey, objectiveDetailQueryKey } from './objectives'
 import { taskSubQueryKey } from './queryKeys'
 import { useRefreshAfterChange } from './tasks'
 
@@ -57,7 +57,7 @@ export function useKeyResultGroups(enabled: boolean) {
   const list = objectives.data?.data ?? []
   const details = useQueries({
     queries: list.map((o) => ({
-      queryKey: ['objectives', 'detail', o.id] as const,
+      queryKey: objectiveDetailQueryKey(o.id),
       queryFn: () => request(api.GET('/objectives/{objectiveId}', { params: { path: { objectiveId: o.id } } })),
       enabled,
     })),
